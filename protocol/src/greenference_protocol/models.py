@@ -119,6 +119,7 @@ class MinerRegistration(BaseModel):
     api_base_url: str
     validator_url: str
     auth_secret: str = Field(min_length=8)
+    drained: bool = False
     supported_workload_kinds: list[WorkloadKind] = Field(
         default_factory=lambda: [WorkloadKind.INFERENCE]
     )
@@ -166,6 +167,8 @@ class PlacementRecord(BaseModel):
     node_id: str
     status: str = "assigned"
     reason: str | None = None
+    failure_count: int = Field(default=0, ge=0)
+    cooldown_until: datetime | None = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -297,6 +300,7 @@ class BuildRecord(BaseModel):
     last_operation: str | None = None
     cleanup_status: str | None = None
     retry_count: int = Field(default=0, ge=0)
+    retry_exhausted: bool = False
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -316,6 +320,26 @@ class BuildContextRecord(BaseModel):
 class BuildEventRecord(BaseModel):
     event_id: str = Field(default_factory=lambda: str(uuid4()))
     build_id: str
+    stage: str
+    message: str
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class BuildAttemptRecord(BaseModel):
+    attempt_id: str = Field(default_factory=lambda: str(uuid4()))
+    build_id: str
+    attempt: int = Field(ge=1)
+    status: str = "accepted"
+    failure_class: str | None = None
+    last_operation: str | None = None
+    started_at: datetime = Field(default_factory=utcnow)
+    finished_at: datetime | None = None
+
+
+class BuildLogRecord(BaseModel):
+    log_id: str = Field(default_factory=lambda: str(uuid4()))
+    build_id: str
+    attempt: int = Field(ge=1)
     stage: str
     message: str
     created_at: datetime = Field(default_factory=utcnow)
