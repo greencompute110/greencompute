@@ -79,8 +79,8 @@ It does not track broader platform work in:
   - [x] build/deploy/run examples
 - [ ] Clean up deprecated helper wording and naming.
   - standardize around `Workload`
-- [ ] Improve CLI tables and summaries.
-  - better status views for builds and deployments
+- [x] Improve CLI tables and summaries.
+  - [x] better status views for builds and deployments
 
 ## Tests Required Before Calling The SDK Production-Ready
 - [x] Installed-package CLI tests, not only source-tree tests
@@ -90,12 +90,12 @@ It does not track broader platform work in:
   - [x] deploy fee rejection
   - [x] deployment timeout
   - [x] permission denied on share or update
-- [ ] Packaging tests for nested dirs, ignored files, and large contexts
-- [ ] Config precedence tests across persisted config, env vars, and CLI flags
-- [ ] Client retry and timeout tests for build/deploy polling flows
+- [x] Packaging tests for nested dirs, ignored files, and large contexts
+- [x] Config precedence tests across persisted config, env vars, and CLI flags
+- [x] Client retry and timeout tests for build/deploy polling flows
 
 ## Production-Ready Definition For This Repo
 - [ ] A developer can install `greenference`, define an image/workload in Python, build it, deploy it, inspect it, and invoke it without raw payload assembly.
 - [x] The CLI and Python client handle normal failure modes cleanly.
-- [ ] The packaging flow is safe enough for real project contexts.
+- [x] The packaging flow is safe enough for real project contexts.
 - [x] The SDK surface is stable, documented, and tested as an installed package.

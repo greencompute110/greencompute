@@ -330,6 +330,49 @@ workload = Workload(
         assert stdout.getvalue().strip()
 
 
+def test_cli_flags_override_env_and_persisted_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen_urls: list[str] = []
+
+    class _CaptureResponse:
+        def read(self) -> bytes:
+            return json.dumps([{"workload_id": "wl-1", "name": "demo", "image": "demo/echo:latest"}]).encode()
+
+        def __enter__(self) -> "_CaptureResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    def fake_capture_urlopen(target, timeout=None):  # type: ignore[no-untyped-def]
+        if isinstance(target, str):
+            seen_urls.append(target)
+        else:
+            seen_urls.append(target.full_url)
+        return _CaptureResponse()
+
+    config_path = tmp_path / "config.ini"
+    config_path.write_text("[greenference]\napi_base_url = http://config.example\napi_key = config-key\n", encoding="utf-8")
+    monkeypatch.setenv("GREENFERENCE_CONFIG_PATH", str(config_path))
+    monkeypatch.setenv("GREENFERENCE_API_URL", "http://env.example")
+    monkeypatch.setenv("GREENFERENCE_API_KEY", "env-key")
+    monkeypatch.setattr(client_module.request, "urlopen", fake_capture_urlopen)
+
+    old_argv = sys.argv
+    sys.argv = ["greenference", "--base-url", "http://cli.example", "workloads", "list"]
+    try:
+        try:
+            main()
+        except SystemExit as exc:
+            assert exc.code == 0
+    finally:
+        sys.argv = old_argv
+
+    assert seen_urls == ["http://cli.example/platform/workloads"]
+
+
 def test_cli_wait_commands_exit_nonzero_for_failed_terminal_states(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

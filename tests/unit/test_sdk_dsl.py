@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import io
+import json
+import socket
 import warnings
 import zipfile
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 
 import pytest
 
@@ -13,6 +16,8 @@ from greenference.client import (
     BuildLogEntry,
     DeploymentInfo,
     GreenferenceClient,
+    GreenferenceHTTPError,
+    GreenferenceTimeoutError,
     WarmupEvent,
     WorkloadInfo,
     WorkloadShareInfo,
@@ -205,6 +210,39 @@ workload = Workload(
     assert "ignore.log" in packaged.excluded_paths
 
 
+def test_packaging_handles_nested_dirs_and_default_ignores(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project = tmp_path / "project"
+    nested = project / "pkg" / "data"
+    ignored = project / ".pytest_cache"
+    nested.mkdir(parents=True)
+    ignored.mkdir(parents=True)
+    (nested / "keep.json").write_text('{"ok": true}', encoding="utf-8")
+    (ignored / "ignored.json").write_text("ignored", encoding="utf-8")
+    (project / "app.py").write_text(
+        """
+from greenference import Image, Workload
+image = Image(username="alice", name="nested", tag="latest").add("pkg/data/keep.json", "/app/keep.json")
+workload = Workload(
+    name="nested-workload",
+    image=image,
+    model_identifier="alice/nested-model",
+    context_paths=["pkg"],
+)
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project)
+
+    loaded = load_workload(f"{project / 'app.py'}:workload")
+    packaged = package_workload(loaded.module_path, loaded.workload)
+
+    assert "pkg/data/keep.json" in packaged.included_paths
+    assert ".pytest_cache/ignored.json" not in packaged.included_paths
+    with zipfile.ZipFile(io.BytesIO(packaged.archive_bytes)) as archive:
+        assert "pkg/data/keep.json" in archive.namelist()
+        assert ".pytest_cache/ignored.json" not in archive.namelist()
+
+
 def test_workload_include_paths_extend_context_paths() -> None:
     workload = Workload(
         name="demo",
@@ -248,6 +286,55 @@ def test_build_log_share_and_warmup_wrappers() -> None:
     assert isinstance(warmup, WarmupEvent)
     assert share.permission == "invoke"
     assert warmup.status == "warmup_complete"
+
+
+def test_client_retries_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    attempts = {"count": 0}
+
+    class _FakeResponse:
+        def __init__(self, payload: dict) -> None:
+            self.payload = payload
+
+        def read(self) -> bytes:
+            return json.dumps(self.payload).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    def fake_urlopen(req, timeout=None):  # type: ignore[no-untyped-def]
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise URLError("temporary network issue")
+        return _FakeResponse({"build_id": "b1", "image": "demo:latest", "status": "published"})
+
+    monkeypatch.setattr("greenference.client.request.urlopen", fake_urlopen)
+    client = GreenferenceClient(max_retries=1)
+
+    build = client.get_build("b1")
+
+    assert build["status"] == "published"
+    assert attempts["count"] == 2
+
+
+def test_client_timeout_and_server_error_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_timeout(req, timeout=None):  # type: ignore[no-untyped-def]
+        raise socket.timeout("timed out")
+
+    monkeypatch.setattr("greenference.client.request.urlopen", fake_timeout)
+    client = GreenferenceClient(max_retries=0)
+
+    with pytest.raises(GreenferenceTimeoutError, match="timed out"):
+        client.get_build("b1")
+
+    def fake_http_error(req, timeout=None):  # type: ignore[no-untyped-def]
+        raise HTTPError(req.full_url, 503, "service unavailable", hdrs=None, fp=io.BytesIO(b'{"detail":"down"}'))
+
+    monkeypatch.setattr("greenference.client.request.urlopen", fake_http_error)
+    with pytest.raises(GreenferenceHTTPError, match="HTTP 503"):
+        client.get_build("b1")
 
 
 def test_compatibility_workloads_module_warns() -> None:

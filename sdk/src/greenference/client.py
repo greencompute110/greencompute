@@ -146,6 +146,9 @@ class GreenferenceClient:
                         time.sleep(0.5 * (2**attempt))
                         continue
                     raise GreenferenceTimeoutError(str(exc)) from exc
+                if attempt < self.max_retries:
+                    time.sleep(0.5 * (2**attempt))
+                    continue
                 raise GreenferenceConnectionError(str(exc)) from exc
         if last_exc:
             raise GreenferenceError(str(last_exc)) from last_exc
