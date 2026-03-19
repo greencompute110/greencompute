@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
+from json import loads
 from pathlib import Path
+from time import time_ns
+from urllib import request
 
 import pytest
 
@@ -14,13 +17,49 @@ from greenference.client import GreenferenceClient
 )
 def test_live_stack_build_deploy_and_invoke(tmp_path: Path) -> None:
     base_url = os.getenv("GREENFERENCE_API_URL", "http://127.0.0.1:8000")
+    control_plane_url = os.getenv("GREENFERENCE_CONTROL_PLANE_URL", "http://127.0.0.1:28001")
+    miner_url = os.getenv("GREENFERENCE_MINER_URL", "http://127.0.0.1:28004")
+    failover_miner_url = os.getenv("GREENFERENCE_FAILOVER_MINER_URL", "http://127.0.0.1:28005")
     api_key = os.environ["GREENFERENCE_API_KEY"]
+    admin_api_key = os.getenv("GREENFERENCE_ADMIN_API_KEY")
     client = GreenferenceClient(base_url=base_url, api_key=api_key, timeout_seconds=60.0, max_retries=1)
+
+    if admin_api_key:
+        def _admin_request_json(method: str, url: str) -> list[dict] | dict:
+            req = request.Request(url=url, method=method)
+            req.add_header("X-API-Key", admin_api_key)
+            with request.urlopen(req) as response:  # noqa: S310
+                return loads(response.read().decode())
+
+        deployments = _admin_request_json("GET", f"{control_plane_url}/platform/v1/debug/deployments")
+        assert isinstance(deployments, list)
+        for deployment in deployments:
+            if deployment["state"] not in {"scheduled", "pulling", "starting", "ready"}:
+                continue
+            if deployment.get("hotkey") == "miner-local":
+                request.urlopen(  # noqa: S310
+                    request.Request(
+                        url=f"{miner_url}/agent/v1/deployments/{deployment['deployment_id']}/terminate",
+                        method="POST",
+                    )
+                ).read()
+            elif deployment.get("hotkey") == "miner-failover":
+                request.urlopen(  # noqa: S310
+                    request.Request(
+                        url=f"{failover_miner_url}/agent/v1/deployments/{deployment['deployment_id']}/terminate",
+                        method="POST",
+                    )
+                ).read()
+            _admin_request_json(
+                "POST",
+                f"{control_plane_url}/platform/v1/debug/deployments/{deployment['deployment_id']}/cleanup",
+            )
 
     project = tmp_path / "live_sdk"
     project.mkdir()
+    suffix = str(time_ns())
     (project / "app.py").write_text(
-        """
+        f"""
 from greenference import Image, NodeSelector, Workload
 
 image = (
@@ -30,11 +69,11 @@ image = (
 )
 
 workload = Workload(
-    name="live-stack-demo",
+    name="live-stack-demo-{suffix}",
     image=image,
     node_selector=NodeSelector(gpu_count=1),
     model_identifier="demo/live-stack",
-    workload_alias="live-stack-demo",
+    workload_alias="live-stack-demo-{suffix}",
 )
 """,
         encoding="utf-8",
