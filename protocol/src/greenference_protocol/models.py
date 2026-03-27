@@ -6,7 +6,13 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from greenference_protocol.enums import DeploymentState, SecurityTier, WorkloadKind
+from greenference_protocol.enums import (
+    DeploymentState,
+    FluxDecision,
+    GpuAllocationMode,
+    SecurityTier,
+    WorkloadKind,
+)
 
 
 def utcnow() -> datetime:
@@ -617,3 +623,135 @@ class ChatCompletionResponse(BaseModel):
     deployment_id: str
     routed_hotkey: str | None = None
     created_at: datetime = Field(default_factory=utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Flux orchestrator models
+# ---------------------------------------------------------------------------
+
+
+class FluxState(BaseModel):
+    """Per-miner GPU allocation state tracked by the Flux orchestrator."""
+
+    hotkey: str
+    node_id: str
+    total_gpus: int = Field(ge=0)
+    inference_gpus: int = Field(default=0, ge=0)
+    rental_gpus: int = Field(default=0, ge=0)
+    idle_gpus: int = Field(default=0, ge=0)
+    inference_floor_pct: float = Field(default=0.20, ge=0.0, le=1.0)
+    rental_floor_pct: float = Field(default=0.10, ge=0.0, le=1.0)
+    inference_demand_score: float = Field(default=0.0, ge=0.0)
+    rental_demand_score: float = Field(default=0.0, ge=0.0)
+    last_rebalanced_at: datetime | None = None
+
+
+class FluxRebalanceEvent(BaseModel):
+    """Audit record of a GPU mode transition decided by Flux."""
+
+    event_id: str = Field(default_factory=lambda: str(uuid4()))
+    hotkey: str
+    node_id: str
+    gpu_index: int = Field(ge=0)
+    from_mode: GpuAllocationMode
+    to_mode: GpuAllocationMode
+    reason: str
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class RentalWaitEstimate(BaseModel):
+    """Returned to users when a rental GPU is busy with inference."""
+
+    deployment_id: str
+    estimated_wait_seconds: float = Field(ge=0.0)
+    gpu_currently_serving: str | None = None
+    position_in_queue: int = Field(default=0, ge=0)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Unified runtime record (superset of inference + compute fields)
+# ---------------------------------------------------------------------------
+
+
+class UnifiedRuntimeRecord(BaseModel):
+    """Single runtime record for any workload kind (inference, pod, VM)."""
+
+    runtime_id: str = Field(default_factory=lambda: str(uuid4()))
+    deployment_id: str
+    workload_id: str
+    hotkey: str
+    node_id: str
+    workload_kind: WorkloadKind
+    status: str = "accepted"
+    current_stage: str = "accepted"
+    endpoint: str | None = None
+
+    # Inference-specific fields
+    build_id: str | None = None
+    image: str | None = None
+    artifact_uri: str | None = None
+    artifact_digest: str | None = None
+    staged_artifact_path: str | None = None
+    runtime_dir: str | None = None
+    runtime_url: str | None = None
+    process_id: int | None = None
+    runtime_mode: str | None = None
+    backend_name: str | None = None
+    model_identifier: str | None = None
+
+    # Compute-specific fields (pod/VM)
+    ssh_host: str | None = None
+    ssh_port: int | None = None
+    ssh_username: str = "user"
+    ssh_fingerprint: str | None = None
+    volume_id: str | None = None
+    volume_path: str | None = None
+    volume_size_gb: int = 50
+    gpu_fraction: float = 1.0
+    container_id: str | None = None
+    vm_id: str | None = None
+    template: str | None = None
+    ttl_seconds: int = 0
+
+    # Shared fields
+    server_id: str | None = None
+    failure_class: str | None = None
+    last_error: str | None = None
+    restart_count: int = Field(default=0, ge=0)
+    crash_count: int = Field(default=0, ge=0)
+    recovery_count: int = Field(default=0, ge=0)
+    last_healthcheck_at: datetime | None = None
+    last_transition_at: datetime = Field(default_factory=utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Bittensor chain integration models
+# ---------------------------------------------------------------------------
+
+
+class MetagraphEntry(BaseModel):
+    """A single neuron from the Bittensor metagraph."""
+
+    uid: int = Field(ge=0)
+    hotkey: str
+    coldkey: str
+    stake: float = Field(default=0.0, ge=0.0)
+    incentive: float = Field(default=0.0, ge=0.0)
+    emission: float = Field(default=0.0, ge=0.0)
+    registered: bool = True
+
+
+class ChainWeightCommit(BaseModel):
+    """Record of a set_weights extrinsic submitted to the chain."""
+
+    commit_id: str = Field(default_factory=lambda: str(uuid4()))
+    netuid: int = Field(ge=0)
+    uids: list[int]
+    weights: list[float]
+    version_key: int = 0
+    tx_hash: str | None = None
+    committed_at: datetime = Field(default_factory=utcnow)

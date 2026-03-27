@@ -23,3 +23,16 @@ class DeploymentState(StrEnum):
     FAILED = "failed"
     TERMINATED = "terminated"
 
+
+class GpuAllocationMode(StrEnum):
+    INFERENCE = "inference"
+    RENTAL = "rental"
+    IDLE = "idle"
+
+
+class FluxDecision(StrEnum):
+    ASSIGN_INFERENCE = "assign_inference"
+    ASSIGN_RENTAL = "assign_rental"
+    HOLD = "hold"
+    QUEUE = "queue"
+
