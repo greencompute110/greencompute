@@ -16,7 +16,7 @@ from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from greenference_protocol.auth import sign_payload, sign_payload_hotkey
+from greenference_protocol.auth import load_hotkey_from_wallet, sign_payload, sign_payload_hotkey
 from greenference_protocol.models import (
     CapacityUpdate,
     DeploymentRecord,
@@ -44,7 +44,8 @@ class ControlPlaneHTTPClient:
         base_url: Control-plane base URL.
         hotkey: Miner's SS58 hotkey address.
         auth_secret: HMAC shared secret (used when auth_mode="hmac").
-        hotkey_uri: Keypair seed URI for ed25519 signing (used when auth_mode="hotkey").
+        hotkey_wallet_path: Path to Bittensor hotkey file (~/.bittensor/wallets/{coldkey}/hotkeys/{hotkey}).
+                           Used for ed25519 signing in production (auth_mode="hotkey").
         auth_mode: "hotkey" for ed25519 (production) or "hmac" for shared secret (dev).
         timeout: HTTP request timeout in seconds.
     """
@@ -54,20 +55,24 @@ class ControlPlaneHTTPClient:
         base_url: str,
         hotkey: str,
         auth_secret: str = "",
-        hotkey_uri: str | None = None,
+        hotkey_wallet_path: str | None = None,
         auth_mode: str = "hmac",
         timeout: int = 30,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.hotkey = hotkey
         self.auth_secret = auth_secret
-        self.hotkey_uri = hotkey_uri
         self.auth_mode = auth_mode
         self.timeout = timeout
 
+        # Load hotkey seed from wallet file in production mode
+        self.hotkey_seed: str | None = None
+        if auth_mode == "hotkey" and hotkey_wallet_path:
+            self.hotkey_seed = load_hotkey_from_wallet(hotkey_wallet_path)
+
     def _signed_headers(self, body: bytes) -> dict[str, str]:
-        if self.auth_mode == "hotkey" and self.hotkey_uri:
-            signed = sign_payload_hotkey(self.hotkey_uri, self.hotkey, body)
+        if self.auth_mode == "hotkey" and self.hotkey_seed:
+            signed = sign_payload_hotkey(self.hotkey_seed, self.hotkey, body)
         else:
             signed = sign_payload(self.auth_secret, self.hotkey, body)
         return {

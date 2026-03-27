@@ -108,12 +108,36 @@ def verify_payload(
 # ---------------------------------------------------------------------------
 
 
-def sign_payload_hotkey(hotkey_uri: str, actor_id: str, body: bytes, nonce: str | None = None) -> SignedRequest:
+def load_hotkey_from_wallet(wallet_path: str) -> str:
+    """Load hotkey seed from Bittensor wallet file.
+
+    Args:
+        wallet_path: Path to hotkey file (~/.bittensor/wallets/{coldkey}/{hotkey}).
+                     Contains JSON with "seed" or "private_key" field.
+
+    Returns:
+        Seed hex string for Keypair.create_from_seed().
+    """
+    import json
+
+    try:
+        with open(wallet_path, "r") as f:
+            wallet = json.load(f)
+        # Try common field names
+        seed = wallet.get("seed") or wallet.get("private_key")
+        if not seed:
+            raise ValueError(f"No seed or private_key found in {wallet_path}")
+        return seed
+    except Exception as exc:
+        raise RuntimeError(f"Failed to load hotkey from {wallet_path}: {exc}") from exc
+
+
+def sign_payload_hotkey(hotkey_seed: str, actor_id: str, body: bytes, nonce: str | None = None) -> SignedRequest:
     """Sign with ed25519 hotkey private key (production mode).
 
     Args:
-        hotkey_uri: Keypair seed URI (e.g. "//Alice") or seed hex.
-                    In production this is loaded from the Bittensor wallet.
+        hotkey_seed: Seed hex (loaded from Bittensor wallet file).
+                     Use load_hotkey_from_wallet() to load from ~/.bittensor/wallets/{coldkey}/hotkeys/{hotkey}.
         actor_id: The hotkey SS58 address.
         body: Request body bytes.
     """
@@ -126,7 +150,7 @@ def sign_payload_hotkey(hotkey_uri: str, actor_id: str, body: bytes, nonce: str 
         auth_mode="hotkey",
     )
     message = _canonical(request.actor_id, request.nonce, request.timestamp, body)
-    keypair = Keypair.create_from_uri(hotkey_uri)
+    keypair = Keypair.create_from_seed(hotkey_seed)
     sig = keypair.sign(message)
     return request.model_copy(update={"signature": sig.hex()})
 

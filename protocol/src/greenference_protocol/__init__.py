@@ -1,6 +1,7 @@
 from greenference_protocol.auth import (
     MemoryReplayStore,
     SignedRequest,
+    load_hotkey_from_wallet,
     sign_payload,
     sign_payload_hotkey,
     verify_payload,
@@ -118,6 +119,7 @@ __all__ = [
     "LeaseHistoryRecord",
     "MemoryReplayStore",
     "MetagraphEntry",
+    "load_hotkey_from_wallet",
     "MinerRegistration",
     "NodeCapability",
     "PlacementRecord",
