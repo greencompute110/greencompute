@@ -759,6 +759,33 @@ class MinerWhitelistEntry(BaseModel):
     approved_at: datetime = Field(default_factory=utcnow)
 
 
+class GreenEnergyApplication(BaseModel):
+    """Provider application to join the subnet with green-energy proof."""
+
+    application_id: str = Field(default_factory=lambda: str(uuid4()))
+    hotkey: str
+    signature: str = ""
+    organization: str = ""
+    energy_source: str = ""
+    description: str = ""
+    status: str = "pending"  # pending | approved | rejected
+    reviewer_notes: str = ""
+    submitted_at: datetime = Field(default_factory=utcnow)
+    reviewed_at: datetime | None = None
+
+
+class GreenEnergyAttachment(BaseModel):
+    """File attached to a green-energy application."""
+
+    attachment_id: str = Field(default_factory=lambda: str(uuid4()))
+    application_id: str
+    filename: str
+    content_type: str = "application/octet-stream"
+    size_bytes: int = 0
+    data_b64: str = ""
+    uploaded_at: datetime = Field(default_factory=utcnow)
+
+
 class ChainWeightCommit(BaseModel):
     """Record of a set_weights extrinsic submitted to the chain."""
 
