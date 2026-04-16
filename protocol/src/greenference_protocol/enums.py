@@ -20,6 +20,7 @@ class DeploymentState(StrEnum):
     STARTING = "starting"
     READY = "ready"
     DRAINING = "draining"
+    SUSPENDED = "suspended"
     FAILED = "failed"
     TERMINATED = "terminated"
 

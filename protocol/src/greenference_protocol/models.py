@@ -68,8 +68,7 @@ class UserRecord(BaseModel):
     bio: str | None = None
     website: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
-    balance_tao: float = Field(default=0.0, ge=0.0)
-    balance_usd: float = Field(default=0.0, ge=0.0)
+    balance_credits: int = Field(default=0, ge=0)
     created_at: datetime = Field(default_factory=utcnow)
 
 
@@ -784,6 +783,55 @@ class GreenEnergyAttachment(BaseModel):
     size_bytes: int = 0
     data_b64: str = ""
     uploaded_at: datetime = Field(default_factory=utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Billing models
+# ---------------------------------------------------------------------------
+
+
+class LedgerEntry(BaseModel):
+    """Immutable audit record of a balance change."""
+
+    entry_id: str = Field(default_factory=lambda: str(uuid4()))
+    user_id: str
+    amount_cents: int
+    balance_after: int
+    kind: str  # topup | usage | refund | bonus
+    reference_id: str | None = None
+    description: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class CryptoInvoice(BaseModel):
+    """Crypto deposit invoice."""
+
+    invoice_id: str = Field(default_factory=lambda: str(uuid4()))
+    user_id: str
+    currency: str  # usdt | usdc | tao | alpha
+    amount_crypto: float
+    amount_usd: float
+    bonus_pct: float = 0.0
+    total_credits: int = 0
+    deposit_address: str = ""
+    status: str = "pending"  # pending | confirmed | expired | cancelled
+    tx_hash: str | None = None
+    expires_at: datetime = Field(default_factory=utcnow)
+    confirmed_at: datetime | None = None
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class StripeSession(BaseModel):
+    """Stripe checkout session record."""
+
+    session_id: str = Field(default_factory=lambda: str(uuid4()))
+    user_id: str
+    stripe_session_id: str = ""
+    amount_usd: float = 0.0
+    amount_cents: int = 0
+    status: str = "pending"  # pending | paid | expired
+    created_at: datetime = Field(default_factory=utcnow)
+    completed_at: datetime | None = None
 
 
 class ChainWeightCommit(BaseModel):
