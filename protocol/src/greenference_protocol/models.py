@@ -553,6 +553,10 @@ class ComputeRuntimeRecord(BaseModel):
     # Extra user-exposed ports: {container_port: host_port}. Populated by the
     # node-agent after `docker run -p` completes. Max 10 ports (enforced pod-side).
     port_mappings: dict[int, int] = Field(default_factory=dict)
+    # Per-pod resource enforcement (Docker --cpus / --memory). Computed as
+    # host_total * (gpu_count / host_gpu_count). 0 means unbounded (legacy).
+    cpu_cores_allocated: float = 0.0
+    memory_gb_allocated: int = 0
     volume_id: str | None = None
     volume_path: str | None = None
     volume_size_gb: int = 50
@@ -736,6 +740,9 @@ class UnifiedRuntimeRecord(BaseModel):
     # User-exposed TCP ports: {container_port: host_port}. Set by node-agent
     # after the pod is running. Max 10 ports.
     port_mappings: dict[int, int] = Field(default_factory=dict)
+    # Enforced resource limits on the pod (Docker --cpus / --memory).
+    cpu_cores_allocated: float = 0.0
+    memory_gb_allocated: int = 0
     volume_id: str | None = None
     volume_path: str | None = None
     volume_size_gb: int = 50
