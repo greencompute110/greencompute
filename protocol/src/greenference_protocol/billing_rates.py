@@ -33,6 +33,27 @@ GPU_RATE_CENTS_PER_HOUR: dict[str, int] = {
 LEGACY_FALLBACK_CENTS_PER_HOUR: int = 10
 
 
+# Canonical hardware specs for known GPUs — used to correct capacity
+# updates from miners whose env var was set incorrectly (e.g. a 5090 host
+# reporting 24GB VRAM because the operator mis-configured
+# GREENFERENCE_VRAM_GB_PER_GPU). Keyed by normalized model name.
+GPU_VRAM_GB: dict[str, int] = {
+    "rtx4090": 24,
+    "rtx5090": 32,
+}
+
+
+def canonical_vram_gb(gpu_model: str | None, reported: int | None = None) -> int | None:
+    """Return the known-good VRAM for a GPU model, falling back to the
+    miner-reported value if the model is unknown. `None` if both are
+    missing."""
+    if gpu_model:
+        canonical = GPU_VRAM_GB.get(_normalize_gpu_model(gpu_model))
+        if canonical is not None:
+            return canonical
+    return reported
+
+
 def _normalize_gpu_model(raw: str) -> str:
     """Lower-case and strip separators so callers don't have to care about
     whether their GPU id is "rtx-4090" / "rtx_4090" / "RTX 4090" / "rtx4090"."""

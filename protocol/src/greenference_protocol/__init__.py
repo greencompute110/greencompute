@@ -1,9 +1,11 @@
 from greenference_protocol.billing_rates import (
     GPU_RATE_CENTS_PER_HOUR,
+    GPU_VRAM_GB,
     INFERENCE_INPUT_CENTS_PER_MTOK,
     INFERENCE_MIN_CHARGE_CENTS,
     INFERENCE_OUTPUT_CENTS_PER_MTOK,
     LEGACY_FALLBACK_CENTS_PER_HOUR,
+    canonical_vram_gb,
     inference_cost_cents,
     rate_for_gpu,
 )
@@ -98,10 +100,12 @@ from greenference_protocol.models import (
 __all__ = [
     # Billing rate constants + helpers
     "GPU_RATE_CENTS_PER_HOUR",
+    "GPU_VRAM_GB",
     "INFERENCE_INPUT_CENTS_PER_MTOK",
     "INFERENCE_MIN_CHARGE_CENTS",
     "INFERENCE_OUTPUT_CENTS_PER_MTOK",
     "LEGACY_FALLBACK_CENTS_PER_HOUR",
+    "canonical_vram_gb",
     "inference_cost_cents",
     "rate_for_gpu",
     "APIKeyCreateRequest",
