@@ -156,6 +156,7 @@ class DeploymentRecord(BaseModel):
     ready_instances: int = 0
     endpoint: str | None = None
     ssh_private_key: str | None = None
+    port_mappings: dict[int, int] = Field(default_factory=dict)
     deployment_fee_usd: float = Field(default=0.0, ge=0.0)
     fee_acknowledged: bool = True
     warmup_state: str = "pending"
@@ -276,6 +277,7 @@ class DeploymentStatusUpdate(BaseModel):
     state: DeploymentState
     endpoint: str | None = None
     ssh_private_key: str | None = None
+    port_mappings: dict[int, int] | None = None
     ready_instances: int = Field(default=0, ge=0)
     error: str | None = None
     observed_at: datetime = Field(default_factory=utcnow)
