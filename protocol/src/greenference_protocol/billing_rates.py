@@ -16,11 +16,15 @@ from __future__ import annotations
 #  Rentals / pods — per GPU, per hour, in cents
 # ---------------------------------------------------------------------------
 
-# Cents per GPU per hour, keyed by the node's `gpu_model` (lower-case).
-# Must match the numbers published on the /enterprise and landing pages.
+# Cents per GPU per hour, keyed by the node's `gpu_model` after
+# normalization (see `_normalize_gpu_model` below). Must match the numbers
+# published on the /enterprise and landing pages. Keys are the canonical
+# human form; `rate_for_gpu` strips dashes/underscores/spaces so real-world
+# values like "rtx4090", "rtx-4090", "RTX 4090", "Rtx_4090" all hit the
+# same entry.
 GPU_RATE_CENTS_PER_HOUR: dict[str, int] = {
-    "rtx-4090": 40,  # $0.40/hr/GPU
-    "rtx-5090": 70,  # $0.70/hr/GPU
+    "rtx4090": 40,  # $0.40/hr/GPU
+    "rtx5090": 70,  # $0.70/hr/GPU
 }
 
 # Fallback for any GPU model that isn't in the table above (legacy H100/A100
@@ -29,12 +33,21 @@ GPU_RATE_CENTS_PER_HOUR: dict[str, int] = {
 LEGACY_FALLBACK_CENTS_PER_HOUR: int = 10
 
 
+def _normalize_gpu_model(raw: str) -> str:
+    """Lower-case and strip separators so callers don't have to care about
+    whether their GPU id is "rtx-4090" / "rtx_4090" / "RTX 4090" / "rtx4090"."""
+    return "".join(ch for ch in raw.lower() if ch.isalnum())
+
+
 def rate_for_gpu(gpu_model: str | None) -> int:
     """Return the per-GPU-per-hour rate in cents for a given GPU model.
     Returns the legacy fallback for unknown / missing models."""
     if not gpu_model:
         return LEGACY_FALLBACK_CENTS_PER_HOUR
-    return GPU_RATE_CENTS_PER_HOUR.get(gpu_model.lower(), LEGACY_FALLBACK_CENTS_PER_HOUR)
+    return GPU_RATE_CENTS_PER_HOUR.get(
+        _normalize_gpu_model(gpu_model),
+        LEGACY_FALLBACK_CENTS_PER_HOUR,
+    )
 
 
 # ---------------------------------------------------------------------------
