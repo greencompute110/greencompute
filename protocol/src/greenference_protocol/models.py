@@ -672,14 +672,36 @@ class ChatCompletionUsage(BaseModel):
     total_tokens: int = 0
 
 
+class ChatCompletionChoice(BaseModel):
+    """OpenAI-format choice. vLLM returns these fields natively."""
+
+    index: int = 0
+    message: ChatCompletionMessage | None = None
+    finish_reason: str | None = None
+
+    # vLLM-specific fields we accept but don't require (reasoning_content,
+    # tool_calls, logprobs, stop_reason). `extra=allow` passes them through
+    # so OpenAI-compatible clients see the same payload the miner sent.
+    model_config = {"extra": "allow"}
+
+
 class ChatCompletionResponse(BaseModel):
+    """OpenAI-compatible chat completion response. Intentionally permissive
+    so any OpenAI-compatible server (vLLM, TGI, llama.cpp) can be the upstream
+    without translation."""
+
     id: str = Field(default_factory=lambda: str(uuid4()))
+    object: str = "chat.completion"
+    created: int = 0
     model: str
-    content: str
-    deployment_id: str
-    routed_hotkey: str | None = None
+    choices: list[ChatCompletionChoice] = Field(default_factory=list)
     usage: ChatCompletionUsage | None = None
-    created_at: datetime = Field(default_factory=utcnow)
+
+    # Gateway-injected diagnostics.
+    deployment_id: str | None = None
+    routed_hotkey: str | None = None
+
+    model_config = {"extra": "allow"}
 
 
 # ---------------------------------------------------------------------------
