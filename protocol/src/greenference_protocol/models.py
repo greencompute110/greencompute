@@ -700,6 +700,11 @@ class FluxState(BaseModel):
     rental_floor_pct: float = Field(default=0.10, ge=0.0, le=1.0)
     inference_demand_score: float = Field(default=0.0, ge=0.0)
     rental_demand_score: float = Field(default=0.0, ge=0.0)
+    # Per-miner catalog-model assignments: model_id → list of GPU indices
+    # allocated to that model. e.g. {"qwen-7b": [0,1,2,3]} means GPUs 0..3 on
+    # this miner should host qwen-7b. Miners consume this in their reconcile
+    # loop to spawn/kill containers autonomously (Phase 2D).
+    inference_assignments: dict[str, list[int]] = Field(default_factory=dict)
     last_rebalanced_at: datetime | None = None
 
 
@@ -713,6 +718,10 @@ class FluxRebalanceEvent(BaseModel):
     from_mode: GpuAllocationMode
     to_mode: GpuAllocationMode
     reason: str
+    # Optional: which catalog model this GPU was assigned to / released from.
+    # Set when transitioning into or out of INFERENCE mode with a known
+    # catalog target. None for RENTAL / IDLE transitions.
+    model_id: str | None = None
     created_at: datetime = Field(default_factory=utcnow)
 
 
