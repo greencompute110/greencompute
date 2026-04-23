@@ -1,4 +1,4 @@
-"""Module ref loading for Greenference workloads."""
+"""Module ref loading for GreenCompute workloads."""
 
 from __future__ import annotations
 

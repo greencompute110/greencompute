@@ -266,7 +266,7 @@ workload = Workload(
     )
     module_ref = f"{workload_file}:workload"
 
-    monkeypatch.setenv("GREENFERENCE_API_URL", base_url)
+    monkeypatch.setenv("GREENCOMPUTE_API_URL", base_url)
     commands = [
         ["greencompute", "--base-url", base_url, "register", "--username", "alice", "--email", "alice@example.com"],
         ["greencompute", "--base-url", base_url, "keys", "create", "--name", "default", "--user-id", "user-1"],
@@ -355,9 +355,9 @@ def test_cli_flags_override_env_and_persisted_config(
 
     config_path = tmp_path / "config.ini"
     config_path.write_text("[greenference]\napi_base_url = http://config.example\napi_key = config-key\n", encoding="utf-8")
-    monkeypatch.setenv("GREENFERENCE_CONFIG_PATH", str(config_path))
-    monkeypatch.setenv("GREENFERENCE_API_URL", "http://env.example")
-    monkeypatch.setenv("GREENFERENCE_API_KEY", "env-key")
+    monkeypatch.setenv("GREENCOMPUTE_CONFIG_PATH", str(config_path))
+    monkeypatch.setenv("GREENCOMPUTE_API_URL", "http://env.example")
+    monkeypatch.setenv("GREENCOMPUTE_API_KEY", "env-key")
     monkeypatch.setattr(client_module.request, "urlopen", fake_capture_urlopen)
 
     old_argv = sys.argv
@@ -434,7 +434,7 @@ def test_cli_prints_http_errors_cleanly_and_exits_nonzero(
 
 def test_client_build_log_entries_capture_terminal_event(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(client_module.request, "urlopen", _fake_urlopen)
-    client = client_module.GreenferenceClient(base_url="http://greenference.test")
+    client = client_module.GreenComputeClient(base_url="http://greenference.test")
 
     entries = list(client.stream_build_log_entries("build-1", follow=False))
 

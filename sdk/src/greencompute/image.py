@@ -1,4 +1,4 @@
-"""Declarative image DSL for Greenference."""
+"""Declarative image DSL for GreenCompute."""
 
 from __future__ import annotations
 

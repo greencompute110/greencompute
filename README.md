@@ -52,7 +52,7 @@ In [`examples/`](examples):
 The CLI resolves configuration in this order:
 
 1. CLI flags
-2. `GREENFERENCE_API_URL` / `GREENFERENCE_API_KEY` env vars
+2. `GREENCOMPUTE_API_URL` / `GREENCOMPUTE_API_KEY` env vars
 3. Persisted config under `~/.greencompute/config.ini`
 
 ```bash

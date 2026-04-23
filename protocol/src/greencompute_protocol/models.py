@@ -330,7 +330,7 @@ class ScoreCard(BaseModel):
 class WeightSnapshot(BaseModel):
     """A single weight-vector computed by the validator, tied to a netuid.
 
-    Greenference's netuids: 110 on mainnet (finney), 16 on testnet."""
+    GreenCompute's netuids: 110 on mainnet (finney), 16 on testnet."""
 
     snapshot_id: str = Field(default_factory=lambda: str(uuid4()))
     netuid: int = Field(default=0, ge=0)

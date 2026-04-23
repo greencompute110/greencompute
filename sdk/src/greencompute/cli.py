@@ -1,4 +1,4 @@
-"""Greenference CLI."""
+"""GreenCompute CLI."""
 
 from __future__ import annotations
 
@@ -10,16 +10,16 @@ from rich.console import Console
 from rich.table import Table
 
 from greencompute.client import (
-    GreenferenceClient,
-    GreenferenceConnectionError,
-    GreenferenceHTTPError,
-    GreenferenceTimeoutError,
+    GreenComputeClient,
+    GreenComputeConnectionError,
+    GreenComputeHTTPError,
+    GreenComputeTimeoutError,
 )
 from greencompute.config import default_config_path, get_config, init_config, mask_secret, save_config, unset_config
 from greencompute.loader import load_workload
 from greencompute.packaging import package_workload
 
-app = typer.Typer(no_args_is_help=True, help="Greenference SDK and CLI")
+app = typer.Typer(no_args_is_help=True, help="GreenCompute SDK and CLI")
 console = Console()
 
 
@@ -27,10 +27,10 @@ def _client(
     ctx: typer.Context | None = None,
     base_url: str | None = None,
     api_key: str | None = None,
-) -> GreenferenceClient:
+) -> GreenComputeClient:
     config = get_config()
     obj = ctx.obj if ctx and hasattr(ctx, "obj") and ctx.obj else {}
-    return GreenferenceClient(
+    return GreenComputeClient(
         base_url=base_url or obj.get("base_url") or config.api_base_url,
         api_key=api_key or obj.get("api_key") or config.api_key,
     )
@@ -99,7 +99,7 @@ def _load_packaged(module_ref: str):
 
 
 def _ensure_built(
-    client: GreenferenceClient,
+    client: GreenComputeClient,
     module_ref: str,
     *,
     public: bool = False,
@@ -155,10 +155,10 @@ def _render_workload_table(items: list[dict]) -> None:
 @app.callback()
 def main_callback(
     ctx: typer.Context,
-    base_url: str | None = typer.Option(None, "--base-url", envvar="GREENFERENCE_API_URL"),
-    api_key: str | None = typer.Option(None, "--api-key", envvar="GREENFERENCE_API_KEY"),
+    base_url: str | None = typer.Option(None, "--base-url", envvar="GREENCOMPUTE_API_URL"),
+    api_key: str | None = typer.Option(None, "--api-key", envvar="GREENCOMPUTE_API_KEY"),
 ) -> None:
-    """Greenference CLI - manage workloads, images, deployments, and inference."""
+    """GreenCompute CLI - manage workloads, images, deployments, and inference."""
     ctx.obj = {"base_url": base_url, "api_key": api_key}
 
 
@@ -180,7 +180,7 @@ def config_show() -> None:
 
 @config_app.command("init", help="Initialize SDK configuration on disk")
 def config_init(
-    base_url: str = typer.Option("http://127.0.0.1:8000", help="Default Greenference API URL"),
+    base_url: str = typer.Option("http://127.0.0.1:8000", help="Default GreenCompute API URL"),
     api_key: str | None = typer.Option(None, help="Default API key"),
 ) -> None:
     saved = init_config(api_base_url=base_url, api_key=api_key)
@@ -195,7 +195,7 @@ def config_init(
 
 @config_app.command("set", help="Persist SDK configuration to disk")
 def config_set(
-    base_url: str | None = typer.Option(None, help="Default Greenference API URL"),
+    base_url: str | None = typer.Option(None, help="Default GreenCompute API URL"),
     api_key: str | None = typer.Option(None, help="Default API key"),
 ) -> None:
     saved = save_config(api_base_url=base_url, api_key=api_key)
@@ -829,15 +829,15 @@ def invoke(
 def main() -> None:
     try:
         app()
-    except GreenferenceHTTPError as exc:
+    except GreenComputeHTTPError as exc:
         status = f"HTTP {exc.status_code}" if exc.status_code is not None else "HTTP error"
         detail = f": {exc.body}" if exc.body else ""
         console.print(f"{status}: {exc}{detail}", style="red")
         raise typer.Exit(code=1) from exc
-    except GreenferenceTimeoutError as exc:
+    except GreenComputeTimeoutError as exc:
         console.print(f"Request timed out: {exc}", style="red")
         raise typer.Exit(code=1) from exc
-    except GreenferenceConnectionError as exc:
+    except GreenComputeConnectionError as exc:
         console.print(f"Connection failed: {exc}", style="red")
         raise typer.Exit(code=1) from exc
 

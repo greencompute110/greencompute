@@ -1,4 +1,4 @@
-"""Greenference API client."""
+"""GreenCompute API client."""
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 
 
-class GreenferenceError(Exception):
-    """Base exception for Greenference client errors."""
+class GreenComputeError(Exception):
+    """Base exception for GreenCompute client errors."""
 
     pass
 
 
-class GreenferenceHTTPError(GreenferenceError):
+class GreenComputeHTTPError(GreenComputeError):
     """HTTP error (4xx/5xx)."""
 
     def __init__(self, message: str, status_code: int | None = None, body: str | None = None) -> None:
@@ -27,13 +27,13 @@ class GreenferenceHTTPError(GreenferenceError):
         self.body = body
 
 
-class GreenferenceConnectionError(GreenferenceError):
+class GreenComputeConnectionError(GreenComputeError):
     """Connection or network error."""
 
     pass
 
 
-class GreenferenceTimeoutError(GreenferenceError):
+class GreenComputeTimeoutError(GreenComputeError):
     """Request timeout."""
 
     pass
@@ -95,8 +95,8 @@ class WarmupEvent:
     detail: dict | None = None
 
 
-class GreenferenceClient:
-    """HTTP client for the Greenference API."""
+class GreenComputeClient:
+    """HTTP client for the GreenCompute API."""
 
     def __init__(
         self,
@@ -127,14 +127,14 @@ class GreenferenceClient:
                 if attempt < self.max_retries:
                     time.sleep(0.5 * (2**attempt))
                     continue
-                raise GreenferenceTimeoutError(str(exc)) from exc
+                raise GreenComputeTimeoutError(str(exc)) from exc
             except HTTPError as exc:
                 last_exc = exc
                 if 500 <= exc.code < 600 and attempt < self.max_retries:
                     time.sleep(0.5 * (2**attempt))
                     continue
                 body = exc.fp.read().decode() if exc.fp else None
-                raise GreenferenceHTTPError(
+                raise GreenComputeHTTPError(
                     f"HTTP {exc.code}: {exc.reason}",
                     status_code=exc.code,
                     body=body,
@@ -145,14 +145,14 @@ class GreenferenceClient:
                     if attempt < self.max_retries:
                         time.sleep(0.5 * (2**attempt))
                         continue
-                    raise GreenferenceTimeoutError(str(exc)) from exc
+                    raise GreenComputeTimeoutError(str(exc)) from exc
                 if attempt < self.max_retries:
                     time.sleep(0.5 * (2**attempt))
                     continue
-                raise GreenferenceConnectionError(str(exc)) from exc
+                raise GreenComputeConnectionError(str(exc)) from exc
         if last_exc:
-            raise GreenferenceError(str(last_exc)) from last_exc
-        raise GreenferenceError("request failed")
+            raise GreenComputeError(str(last_exc)) from last_exc
+        raise GreenComputeError("request failed")
 
     def _request(
         self,
@@ -372,7 +372,7 @@ class GreenferenceClient:
             if status in {"published", "failed", "cancelled"}:
                 return build
             if time.monotonic() - started > timeout_seconds:
-                raise GreenferenceTimeoutError(f"timed out waiting for build {build_id}")
+                raise GreenComputeTimeoutError(f"timed out waiting for build {build_id}")
             time.sleep(poll_interval_seconds)
 
     def wait_for_build_info(
@@ -404,7 +404,7 @@ class GreenferenceClient:
             if state in {"ready", "failed", "terminated"}:
                 return deployment
             if time.monotonic() - started > timeout_seconds:
-                raise GreenferenceTimeoutError(f"timed out waiting for deployment {deployment_id}")
+                raise GreenComputeTimeoutError(f"timed out waiting for deployment {deployment_id}")
             time.sleep(poll_interval_seconds)
 
     def wait_for_deployment_info(
@@ -437,7 +437,7 @@ class GreenferenceClient:
                 if deployment.state.lower() in {"ready", "failed", "terminated"}:
                     return deployment
             if time.monotonic() - started > timeout_seconds:
-                raise GreenferenceTimeoutError(f"timed out waiting for workload {workload_id} to become ready")
+                raise GreenComputeTimeoutError(f"timed out waiting for workload {workload_id} to become ready")
             time.sleep(poll_interval_seconds)
 
     # --- Workloads ---

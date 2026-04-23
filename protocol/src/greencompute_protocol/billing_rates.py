@@ -36,7 +36,7 @@ LEGACY_FALLBACK_CENTS_PER_HOUR: int = 10
 # Canonical hardware specs for known GPUs — used to correct capacity
 # updates from miners whose env var was set incorrectly (e.g. a 5090 host
 # reporting 24GB VRAM because the operator mis-configured
-# GREENFERENCE_VRAM_GB_PER_GPU). Keyed by normalized model name.
+# GREENCOMPUTE_VRAM_GB_PER_GPU). Keyed by normalized model name.
 GPU_VRAM_GB: dict[str, int] = {
     "rtx4090": 24,
     "rtx5090": 32,

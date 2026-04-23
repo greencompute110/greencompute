@@ -11,7 +11,7 @@ workload = Workload(
     image=image,
     node_selector=NodeSelector(gpu_count=1, min_vram_gb_per_gpu=24),
     display_name="Minimal Inference",
-    readme="A minimal Greenference inference workload defined in Python.",
+    readme="A minimal GreenCompute inference workload defined in Python.",
     model_identifier="demo/minimal-model",
     workload_alias="minimal-inference",
 )

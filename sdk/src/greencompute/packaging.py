@@ -51,7 +51,7 @@ def package_workload(module_path: Path, workload: Workload) -> PackagedWorkload:
             _write_file(archive, source, Path(path).as_posix())
     archive_name = f"{module_path.stem}-{workload.name}-context.zip"
     archive_bytes = buffer.getvalue()
-    max_archive_bytes = int(os.getenv("GREENFERENCE_MAX_CONTEXT_ARCHIVE_BYTES", str(50 * 1024 * 1024)))
+    max_archive_bytes = int(os.getenv("GREENCOMPUTE_MAX_CONTEXT_ARCHIVE_BYTES", str(50 * 1024 * 1024)))
     if len(archive_bytes) > max_archive_bytes:
         raise ValueError(
             f"packaged context archive exceeds limit: {len(archive_bytes)} > {max_archive_bytes} bytes"

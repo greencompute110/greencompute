@@ -8,21 +8,21 @@ from urllib import request
 
 import pytest
 
-from greencompute.client import GreenferenceClient
+from greencompute.client import GreenComputeClient
 
 
 @pytest.mark.skipif(
-    not os.getenv("GREENFERENCE_LIVE_STACK") or not os.getenv("GREENFERENCE_API_KEY"),
-    reason="requires GREENFERENCE_LIVE_STACK=1 and GREENFERENCE_API_KEY",
+    not os.getenv("GREENCOMPUTE_LIVE_STACK") or not os.getenv("GREENCOMPUTE_API_KEY"),
+    reason="requires GREENCOMPUTE_LIVE_STACK=1 and GREENCOMPUTE_API_KEY",
 )
 def test_live_stack_build_deploy_and_invoke(tmp_path: Path) -> None:
-    base_url = os.getenv("GREENFERENCE_API_URL", "http://127.0.0.1:8000")
-    control_plane_url = os.getenv("GREENFERENCE_CONTROL_PLANE_URL", "http://127.0.0.1:28001")
-    miner_url = os.getenv("GREENFERENCE_MINER_URL", "http://127.0.0.1:28004")
-    failover_miner_url = os.getenv("GREENFERENCE_FAILOVER_MINER_URL", "http://127.0.0.1:28005")
-    api_key = os.environ["GREENFERENCE_API_KEY"]
-    admin_api_key = os.getenv("GREENFERENCE_ADMIN_API_KEY")
-    client = GreenferenceClient(base_url=base_url, api_key=api_key, timeout_seconds=60.0, max_retries=1)
+    base_url = os.getenv("GREENCOMPUTE_API_URL", "http://127.0.0.1:8000")
+    control_plane_url = os.getenv("GREENCOMPUTE_CONTROL_PLANE_URL", "http://127.0.0.1:28001")
+    miner_url = os.getenv("GREENCOMPUTE_MINER_URL", "http://127.0.0.1:28004")
+    failover_miner_url = os.getenv("GREENCOMPUTE_FAILOVER_MINER_URL", "http://127.0.0.1:28005")
+    api_key = os.environ["GREENCOMPUTE_API_KEY"]
+    admin_api_key = os.getenv("GREENCOMPUTE_ADMIN_API_KEY")
+    client = GreenComputeClient(base_url=base_url, api_key=api_key, timeout_seconds=60.0, max_retries=1)
 
     if admin_api_key:
         def _admin_request_json(method: str, url: str) -> list[dict] | dict:

@@ -1,7 +1,7 @@
 [project]
 name = "greencompute-repo"
 version = "0.1.0"
-description = "Greenference shared protocol and SDK"
+description = "GreenCompute shared protocol and SDK"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []

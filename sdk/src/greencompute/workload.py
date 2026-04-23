@@ -1,4 +1,4 @@
-"""Developer-facing workload definitions for Greenference."""
+"""Developer-facing workload definitions for GreenCompute."""
 
 from __future__ import annotations
 

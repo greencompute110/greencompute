@@ -15,9 +15,9 @@ from greencompute.client import (
     BuildInfo,
     BuildLogEntry,
     DeploymentInfo,
-    GreenferenceClient,
-    GreenferenceHTTPError,
-    GreenferenceTimeoutError,
+    GreenComputeClient,
+    GreenComputeHTTPError,
+    GreenComputeTimeoutError,
     WarmupEvent,
     WorkloadInfo,
     WorkloadShareInfo,
@@ -78,14 +78,14 @@ workload = Workload(
 
 def test_config_file_and_env_precedence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config_path = tmp_path / "config.ini"
-    monkeypatch.setenv("GREENFERENCE_CONFIG_PATH", str(config_path))
+    monkeypatch.setenv("GREENCOMPUTE_CONFIG_PATH", str(config_path))
 
     saved = save_config(api_base_url="http://saved.example", api_key="saved-key")
     assert saved.api_base_url == "http://saved.example"
     assert saved.api_key == "saved-key"
 
-    monkeypatch.setenv("GREENFERENCE_API_URL", "http://env.example")
-    monkeypatch.setenv("GREENFERENCE_API_KEY", "env-key")
+    monkeypatch.setenv("GREENCOMPUTE_API_URL", "http://env.example")
+    monkeypatch.setenv("GREENCOMPUTE_API_KEY", "env-key")
     resolved = get_config()
 
     assert resolved.api_base_url == "http://env.example"
@@ -94,7 +94,7 @@ def test_config_file_and_env_precedence(tmp_path: Path, monkeypatch: pytest.Monk
 
 def test_config_init_unset_and_masking(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config_path = tmp_path / "config.ini"
-    monkeypatch.setenv("GREENFERENCE_CONFIG_PATH", str(config_path))
+    monkeypatch.setenv("GREENCOMPUTE_CONFIG_PATH", str(config_path))
 
     initialized = init_config(api_base_url="http://init.example", api_key="secret-token")
     assert initialized.api_base_url == "http://init.example"
@@ -174,7 +174,7 @@ workload = Workload(name="demo-workload", image=image, model_identifier="alice/d
         encoding="utf-8",
     )
     monkeypatch.chdir(project)
-    monkeypatch.setenv("GREENFERENCE_MAX_CONTEXT_ARCHIVE_BYTES", "100")
+    monkeypatch.setenv("GREENCOMPUTE_MAX_CONTEXT_ARCHIVE_BYTES", "100")
 
     loaded = load_workload(f"{project / 'app.py'}:workload")
 
@@ -256,7 +256,7 @@ def test_workload_include_paths_extend_context_paths() -> None:
 
 
 def test_typed_client_wrappers() -> None:
-    client = GreenferenceClient()
+    client = GreenComputeClient()
 
     build = client._build_info({"build_id": "b1", "image": "demo:latest", "status": "published"})
     deployment = client._deployment_info(
@@ -273,7 +273,7 @@ def test_typed_client_wrappers() -> None:
 
 
 def test_build_log_share_and_warmup_wrappers() -> None:
-    client = GreenferenceClient()
+    client = GreenComputeClient()
 
     log_entry = client._build_log_entry({"stage": "building", "message": "remote build", "status": "running"})
     share = client._share_info(
@@ -311,7 +311,7 @@ def test_client_retries_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
         return _FakeResponse({"build_id": "b1", "image": "demo:latest", "status": "published"})
 
     monkeypatch.setattr("greencompute.client.request.urlopen", fake_urlopen)
-    client = GreenferenceClient(max_retries=1)
+    client = GreenComputeClient(max_retries=1)
 
     build = client.get_build("b1")
 
@@ -324,16 +324,16 @@ def test_client_timeout_and_server_error_paths(monkeypatch: pytest.MonkeyPatch) 
         raise socket.timeout("timed out")
 
     monkeypatch.setattr("greencompute.client.request.urlopen", fake_timeout)
-    client = GreenferenceClient(max_retries=0)
+    client = GreenComputeClient(max_retries=0)
 
-    with pytest.raises(GreenferenceTimeoutError, match="timed out"):
+    with pytest.raises(GreenComputeTimeoutError, match="timed out"):
         client.get_build("b1")
 
     def fake_http_error(req, timeout=None):  # type: ignore[no-untyped-def]
         raise HTTPError(req.full_url, 503, "service unavailable", hdrs=None, fp=io.BytesIO(b'{"detail":"down"}'))
 
     monkeypatch.setattr("greencompute.client.request.urlopen", fake_http_error)
-    with pytest.raises(GreenferenceHTTPError, match="HTTP 503"):
+    with pytest.raises(GreenComputeHTTPError, match="HTTP 503"):
         client.get_build("b1")
 
 

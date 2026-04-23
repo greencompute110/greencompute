@@ -1,4 +1,4 @@
-"""Compatibility wrappers for Greenference workload templates."""
+"""Compatibility wrappers for GreenCompute workload templates."""
 
 from __future__ import annotations
 

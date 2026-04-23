@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def test_sdk_cli_runs_from_staged_site_packages(tmp_path: Path) -> None:
-    repo_root = Path("/workspace/unicorn/greenference-ai/greencompute")
+    repo_root = Path("/workspace/unicorn/greencompute-ai/greencompute")
     sdk_src = repo_root / "sdk/src/greencompute"
     protocol_src = repo_root / "protocol/src/greencompute_protocol"
     staged_site_packages = tmp_path / "site-packages"
@@ -41,4 +41,4 @@ def test_sdk_cli_runs_from_staged_site_packages(tmp_path: Path) -> None:
 
     output = result.stdout
     assert str(staged_site_packages / "greencompute") in output
-    assert "Greenference SDK and CLI" in output
+    assert "GreenCompute SDK and CLI" in output

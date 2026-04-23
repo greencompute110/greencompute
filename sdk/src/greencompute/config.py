@@ -1,4 +1,4 @@
-"""Configuration for Greenference SDK."""
+"""Configuration for GreenCompute SDK."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class Config:
 
 
 def default_config_path() -> Path:
-    override = os.getenv("GREENFERENCE_CONFIG_PATH")
+    override = os.getenv("GREENCOMPUTE_CONFIG_PATH")
     if override:
         return Path(override).expanduser()
     return Path.home() / GREENCOMPUTE_DIRNAME / CONFIG_FILENAME
@@ -83,6 +83,6 @@ def mask_secret(value: str | None) -> str | None:
 def get_config() -> Config:
     """Load config from file and env vars with env taking precedence."""
     config = load_file_config()
-    api_base_url = os.getenv("GREENFERENCE_API_URL", config.api_base_url)
-    api_key = os.getenv("GREENFERENCE_API_KEY", config.api_key or "") or config.api_key
+    api_base_url = os.getenv("GREENCOMPUTE_API_URL", config.api_base_url)
+    api_key = os.getenv("GREENCOMPUTE_API_KEY", config.api_key or "") or config.api_key
     return Config(api_base_url=api_base_url.rstrip("/"), api_key=api_key)
