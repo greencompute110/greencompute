@@ -306,6 +306,11 @@ class ProbeResult(BaseModel):
     benchmark_signature: str | None = None
     proxy_suspected: bool = False
     readiness_failures: int = Field(default=0, ge=0)
+    # A.5 probe hardening: prompt/response digests so auditors can verify
+    # the miner actually served a nonce-bearing prompt instead of a cached
+    # canned response. Nullable for back-compat with old probe results.
+    prompt_sha256: str | None = None
+    response_sha256: str | None = None
     observed_at: datetime = Field(default_factory=utcnow)
 
 
@@ -991,3 +996,24 @@ class ChainWeightCommit(BaseModel):
     version_key: int = 0
     tx_hash: str | None = None
     committed_at: datetime = Field(default_factory=utcnow)
+
+
+class AuditReport(BaseModel):
+    """Per-epoch audit report for independent verifiers (greenference-audit).
+
+    The canonical on-wire shape is `report_json` with sorted keys + no
+    whitespace; `report_sha256` is the hash of that canonical bytes.
+    `signature` is the validator's ed25519 signature over the same bytes.
+    `chain_commitment_tx` is the tx hash of the Commitments.set_commitment
+    extrinsic that anchored `report_sha256` on-chain for this epoch."""
+
+    epoch_id: str = Field(min_length=1, max_length=64)
+    netuid: int = Field(ge=0)
+    epoch_start_block: int = Field(ge=0)
+    epoch_end_block: int = Field(ge=0)
+    report_json: dict[str, Any] = Field(default_factory=dict)
+    report_sha256: str = Field(min_length=64, max_length=64)
+    signature: str = ""
+    signer_hotkey: str = ""
+    chain_commitment_tx: str | None = None
+    created_at: datetime = Field(default_factory=utcnow)
