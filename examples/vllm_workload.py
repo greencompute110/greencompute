@@ -1,4 +1,4 @@
-from greenference.templates import build_vllm_workload
+from greencompute.templates import build_vllm_workload
 
 workload = build_vllm_workload(
     username="demo",

@@ -8,14 +8,14 @@ from pathlib import Path
 
 
 def test_sdk_cli_runs_from_staged_site_packages(tmp_path: Path) -> None:
-    repo_root = Path("/workspace/Greenference/greenference")
-    sdk_src = repo_root / "sdk/src/greenference"
-    protocol_src = repo_root / "protocol/src/greenference_protocol"
+    repo_root = Path("/workspace/unicorn/greenference-ai/greencompute")
+    sdk_src = repo_root / "sdk/src/greencompute"
+    protocol_src = repo_root / "protocol/src/greencompute_protocol"
     staged_site_packages = tmp_path / "site-packages"
     staged_site_packages.mkdir()
 
-    shutil.copytree(sdk_src, staged_site_packages / "greenference")
-    shutil.copytree(protocol_src, staged_site_packages / "greenference_protocol")
+    shutil.copytree(sdk_src, staged_site_packages / "greencompute")
+    shutil.copytree(protocol_src, staged_site_packages / "greencompute_protocol")
 
     dependency_site_packages = repo_root / ".venv/lib/python3.12/site-packages"
     env = os.environ.copy()
@@ -25,9 +25,9 @@ def test_sdk_cli_runs_from_staged_site_packages(tmp_path: Path) -> None:
         sys.executable,
         "-c",
         (
-            "import greenference, subprocess, sys; "
-            "print(greenference.__file__); "
-            "subprocess.run([sys.executable, '-m', 'greenference.cli', '--help'], check=True)"
+            "import greencompute, subprocess, sys; "
+            "print(greencompute.__file__); "
+            "subprocess.run([sys.executable, '-m', 'greencompute.cli', '--help'], check=True)"
         ),
     ]
     result = subprocess.run(
@@ -40,5 +40,5 @@ def test_sdk_cli_runs_from_staged_site_packages(tmp_path: Path) -> None:
     )
 
     output = result.stdout
-    assert str(staged_site_packages / "greenference") in output
+    assert str(staged_site_packages / "greencompute") in output
     assert "Greenference SDK and CLI" in output

@@ -9,8 +9,8 @@ from urllib.error import HTTPError
 import click
 import pytest
 
-from greenference import client as client_module
-from greenference.cli import main
+from greencompute import client as client_module
+from greencompute.cli import main
 
 
 class _FakeResponse:
@@ -60,7 +60,7 @@ def _fake_urlopen(target, timeout=None):  # type: ignore[no-untyped-def]
     if path.endswith("/platform/images/contexts"):
         return _FakeResponse(
             {
-                "context_uri": "file:///tmp/greenference-build-context.zip",
+                "context_uri": "file:///tmp/greencompute-build-context.zip",
                 "archive_name": payload["context_archive_name"],
                 "size_bytes": 128,
             }
@@ -218,12 +218,12 @@ def _fake_urlopen(target, timeout=None):  # type: ignore[no-untyped-def]
         )
     if path.endswith("/v1/chat/completions"):
         if payload.get("stream"):
-            return _FakeResponse('data: {"content":"greenference-response: hi"}\n\ndata: [DONE]\n')
+            return _FakeResponse('data: {"content":"greencompute-response: hi"}\n\ndata: [DONE]\n')
         return _FakeResponse(
             {
                 "id": "resp-1",
                 "model": payload["model"],
-                "content": "greenference-response: hi",
+                "content": "greencompute-response: hi",
                 "deployment_id": "dep-1",
             }
         )
@@ -246,7 +246,7 @@ def test_cli_happy_path_against_local_api(
     data_file.write_text("hello", encoding="utf-8")
     workload_file.write_text(
         """
-from greenference import Image, NodeSelector, Workload
+from greencompute import Image, NodeSelector, Workload
 
 image = (
     Image(username="demo", name="echo", tag="latest")
@@ -268,22 +268,22 @@ workload = Workload(
 
     monkeypatch.setenv("GREENFERENCE_API_URL", base_url)
     commands = [
-        ["greenference", "--base-url", base_url, "register", "--username", "alice", "--email", "alice@example.com"],
-        ["greenference", "--base-url", base_url, "keys", "create", "--name", "default", "--user-id", "user-1"],
-        ["greenference", "--base-url", base_url, "build", module_ref],
-        ["greenference", "--base-url", base_url, "workloads", "create", module_ref, "--public"],
-        ["greenference", "--base-url", base_url, "images", "history", "demo/echo:latest"],
-        ["greenference", "--base-url", base_url, "builds", "list"],
-        ["greenference", "--base-url", base_url, "builds", "get", "build-1"],
-        ["greenference", "--base-url", base_url, "builds", "logs", "build-1"],
-        ["greenference", "--base-url", base_url, "builds", "wait", "build-1"],
-        ["greenference", "--base-url", base_url, "deploy", module_ref, "--accept-fee", "--wait"],
-        ["greenference", "--base-url", base_url, "deployments", "list"],
-        ["greenference", "--base-url", base_url, "deployments", "get", "dep-1"],
-        ["greenference", "--base-url", base_url, "deployments", "update", "dep-1", "--requested-instances", "2"],
-        ["greenference", "--base-url", base_url, "deployments", "wait", "dep-1"],
+        ["greencompute", "--base-url", base_url, "register", "--username", "alice", "--email", "alice@example.com"],
+        ["greencompute", "--base-url", base_url, "keys", "create", "--name", "default", "--user-id", "user-1"],
+        ["greencompute", "--base-url", base_url, "build", module_ref],
+        ["greencompute", "--base-url", base_url, "workloads", "create", module_ref, "--public"],
+        ["greencompute", "--base-url", base_url, "images", "history", "demo/echo:latest"],
+        ["greencompute", "--base-url", base_url, "builds", "list"],
+        ["greencompute", "--base-url", base_url, "builds", "get", "build-1"],
+        ["greencompute", "--base-url", base_url, "builds", "logs", "build-1"],
+        ["greencompute", "--base-url", base_url, "builds", "wait", "build-1"],
+        ["greencompute", "--base-url", base_url, "deploy", module_ref, "--accept-fee", "--wait"],
+        ["greencompute", "--base-url", base_url, "deployments", "list"],
+        ["greencompute", "--base-url", base_url, "deployments", "get", "dep-1"],
+        ["greencompute", "--base-url", base_url, "deployments", "update", "dep-1", "--requested-instances", "2"],
+        ["greencompute", "--base-url", base_url, "deployments", "wait", "dep-1"],
         [
-            "greenference",
+            "greencompute",
             "--base-url",
             base_url,
             "workloads",
@@ -304,13 +304,13 @@ workload = Workload(
             "premium",
             "--public",
         ],
-        ["greenference", "--base-url", base_url, "workloads", "utilization", "wl-1"],
-        ["greenference", "--base-url", base_url, "workloads", "share", "wl-1", "--user-id", "user-2"],
-        ["greenference", "--base-url", base_url, "workloads", "shares", "wl-1"],
-        ["greenference", "--base-url", base_url, "workloads", "warmup", "wl-1"],
-        ["greenference", "--base-url", base_url, "run", module_ref, "--message", "hi"],
-        ["greenference", "--base-url", base_url, "invoke", "--model", "wl-1", "--message", "hi", "--stream"],
-        ["greenference", "--base-url", base_url, "workloads", "list"],
+        ["greencompute", "--base-url", base_url, "workloads", "utilization", "wl-1"],
+        ["greencompute", "--base-url", base_url, "workloads", "share", "wl-1", "--user-id", "user-2"],
+        ["greencompute", "--base-url", base_url, "workloads", "shares", "wl-1"],
+        ["greencompute", "--base-url", base_url, "workloads", "warmup", "wl-1"],
+        ["greencompute", "--base-url", base_url, "run", module_ref, "--message", "hi"],
+        ["greencompute", "--base-url", base_url, "invoke", "--model", "wl-1", "--message", "hi", "--stream"],
+        ["greencompute", "--base-url", base_url, "workloads", "list"],
     ]
 
     for argv in commands:
@@ -361,7 +361,7 @@ def test_cli_flags_override_env_and_persisted_config(
     monkeypatch.setattr(client_module.request, "urlopen", fake_capture_urlopen)
 
     old_argv = sys.argv
-    sys.argv = ["greenference", "--base-url", "http://cli.example", "workloads", "list"]
+    sys.argv = ["greencompute", "--base-url", "http://cli.example", "workloads", "list"]
     try:
         try:
             main()
@@ -390,8 +390,8 @@ def test_cli_wait_commands_exit_nonzero_for_failed_terminal_states(
     monkeypatch.setattr(client_module.request, "urlopen", fake_failed_urlopen)
 
     for argv in (
-        ["greenference", "builds", "wait", "build-failed"],
-        ["greenference", "deployments", "wait", "dep-failed"],
+        ["greencompute", "builds", "wait", "build-failed"],
+        ["greencompute", "deployments", "wait", "dep-failed"],
     ):
         old_argv = sys.argv
         sys.argv = argv
@@ -419,7 +419,7 @@ def test_cli_prints_http_errors_cleanly_and_exits_nonzero(
     monkeypatch.setattr(client_module.request, "urlopen", fake_http_error)
 
     old_argv = sys.argv
-    sys.argv = ["greenference", "workloads", "get", "wl-1"]
+    sys.argv = ["greencompute", "workloads", "get", "wl-1"]
     try:
         with pytest.raises(click.exceptions.Exit):
             main()
@@ -469,8 +469,8 @@ def test_cli_share_and_invoke_failures_exit_nonzero(
     monkeypatch.setattr(client_module.request, "urlopen", fake_forbidden_urlopen)
 
     for argv, expected in (
-        (["greenference", "workloads", "share", "wl-1", "--user-id", "user-2"], "share denied"),
-        (["greenference", "invoke", "--model", "wl-1", "--message", "hi"], "invoke denied"),
+        (["greencompute", "workloads", "share", "wl-1", "--user-id", "user-2"], "share denied"),
+        (["greencompute", "invoke", "--model", "wl-1", "--message", "hi"], "invoke denied"),
     ):
         old_argv = sys.argv
         sys.argv = argv
@@ -508,7 +508,7 @@ def test_cli_deploy_fee_rejection_exits_nonzero(
 
     old_argv = sys.argv
     sys.argv = [
-        "greenference",
+        "greencompute",
         "deploy",
         "--name",
         "demo",

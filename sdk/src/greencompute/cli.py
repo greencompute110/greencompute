@@ -9,15 +9,15 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from greenference.client import (
+from greencompute.client import (
     GreenferenceClient,
     GreenferenceConnectionError,
     GreenferenceHTTPError,
     GreenferenceTimeoutError,
 )
-from greenference.config import default_config_path, get_config, init_config, mask_secret, save_config, unset_config
-from greenference.loader import load_workload
-from greenference.packaging import package_workload
+from greencompute.config import default_config_path, get_config, init_config, mask_secret, save_config, unset_config
+from greencompute.loader import load_workload
+from greencompute.packaging import package_workload
 
 app = typer.Typer(no_args_is_help=True, help="Greenference SDK and CLI")
 console = Console()
@@ -380,12 +380,12 @@ def workloads_utilization(
 def workloads_create_vllm(
     ctx: typer.Context,
     model: str = typer.Option(..., help="HuggingFace model (org/model)"),
-    username: str = typer.Option("greenference", help="Image owner/namespace"),
+    username: str = typer.Option("greencompute", help="Image owner/namespace"),
     name: str | None = typer.Option(None, help="Workload name"),
     display_name: str | None = typer.Option(None, help="Display name"),
     workload_alias: str | None = typer.Option(None, help="Alias used for invocation routing"),
 ) -> None:
-    from greenference.templates import build_vllm_workload
+    from greencompute.templates import build_vllm_workload
 
     client = _client(ctx)
     workload = build_vllm_workload(
@@ -402,12 +402,12 @@ def workloads_create_vllm(
 def workloads_create_diffusion(
     ctx: typer.Context,
     model: str = typer.Option(..., help="Model identifier"),
-    username: str = typer.Option("greenference", help="Image owner/namespace"),
+    username: str = typer.Option("greencompute", help="Image owner/namespace"),
     name: str = typer.Option(..., help="Workload name"),
     display_name: str | None = typer.Option(None, help="Display name"),
     workload_alias: str | None = typer.Option(None, help="Alias used for invocation routing"),
 ) -> None:
-    from greenference.templates import build_diffusion_workload
+    from greencompute.templates import build_diffusion_workload
 
     client = _client(ctx)
     workload = build_diffusion_workload(

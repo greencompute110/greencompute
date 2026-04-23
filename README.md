@@ -1,9 +1,9 @@
-# greenference
+# greencompute
 
 Shared developer-facing code for the Green Compute subnet:
 
-- [`protocol/`](protocol) — cross-service pydantic models, enums, signing helpers, rate constants. Imported by `greenference-api`, `greenference-node`, `greenference-ui` (via TS mirror), and `greenference-audit`.
-- [`sdk/`](sdk) — Python client and CLI (`greenference ...`) for programmatic access to the gateway.
+- [`protocol/`](protocol) — cross-service pydantic models, enums, signing helpers, rate constants. Imported by `greencompute-api`, `greencompute-node`, `greencompute-ui` (via TS mirror), and `greencompute-audit`.
+- [`sdk/`](sdk) — Python client and CLI (`greencompute ...`) for programmatic access to the gateway.
 - [`examples/`](examples) — SDK example workloads.
 - [`tests/`](tests) — protocol + SDK tests.
 
@@ -30,12 +30,12 @@ For users who prefer a code-first workflow over the web UI:
 4. Inspect builds, deployments, warmup, and utilization from the same CLI.
 
 ```bash
-greenference config init --base-url https://api.green-compute.com --api-key gk_xxx
-greenference build examples/minimal_inference.py:workload --wait
-greenference workloads create examples/minimal_inference.py:workload
-greenference deploy examples/minimal_inference.py:workload --accept-fee --wait
-greenference builds logs <build-id> --follow
-greenference deployments wait <deployment-id>
+greencompute config init --base-url https://api.green-compute.com --api-key gk_xxx
+greencompute build examples/minimal_inference.py:workload --wait
+greencompute workloads create examples/minimal_inference.py:workload
+greencompute deploy examples/minimal_inference.py:workload --accept-fee --wait
+greencompute builds logs <build-id> --follow
+greencompute deployments wait <deployment-id>
 ```
 
 ## examples
@@ -53,18 +53,18 @@ The CLI resolves configuration in this order:
 
 1. CLI flags
 2. `GREENFERENCE_API_URL` / `GREENFERENCE_API_KEY` env vars
-3. Persisted config under `~/.greenference/config.ini`
+3. Persisted config under `~/.greencompute/config.ini`
 
 ```bash
-greenference config init --base-url https://api.green-compute.com --api-key gk_xxx
-greenference config show
-greenference config unset --api-key
+greencompute config init --base-url https://api.green-compute.com --api-key gk_xxx
+greencompute config show
+greencompute config unset --api-key
 ```
 
 ## tests
 
 ```bash
-cd greenference
+cd greencompute
 uv sync
 pytest
 ```
@@ -73,7 +73,7 @@ pytest
 
 | Repo | How it uses this |
 |---|---|
-| [`greenference-api`](../greenference-api) | Imports every model in `models.py`; implements services around them |
-| [`greenference-node`](../greenference-node) | Uses `ControlPlaneHTTPClient` + miner-side signing |
-| [`greenference-audit`](../greenference-audit) | Verifies `AuditReport.signature` against `sign_payload_hotkey` output; ports `ScoreEngine` formula for replay |
-| [`greenference-ui`](../greenference-ui) | TypeScript mirrors of model types in [`lib/api/types.ts`](../greenference-ui/lib/api/types.ts) |
+| [`greencompute-api`](../greencompute-api) | Imports every model in `models.py`; implements services around them |
+| [`greencompute-node`](../greencompute-node) | Uses `ControlPlaneHTTPClient` + miner-side signing |
+| [`greencompute-audit`](../greencompute-audit) | Verifies `AuditReport.signature` against `sign_payload_hotkey` output; ports `ScoreEngine` formula for replay |
+| [`greencompute-ui`](../greencompute-ui) | TypeScript mirrors of model types in [`lib/api/types.ts`](../greencompute-ui/lib/api/types.ts) |

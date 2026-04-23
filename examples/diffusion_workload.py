@@ -1,4 +1,4 @@
-from greenference.templates import build_diffusion_workload
+from greencompute.templates import build_diffusion_workload
 
 workload = build_diffusion_workload(
     username="demo",

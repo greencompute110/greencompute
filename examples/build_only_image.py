@@ -1,4 +1,4 @@
-from greenference import Image
+from greencompute import Image
 
 image = (
     Image(username="demo", name="build-only", tag="latest")

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from greenference.image import Image
-from greenference.workload import NodeSelector, Workload, WorkloadPack
+from greencompute.image import Image
+from greencompute.workload import NodeSelector, Workload, WorkloadPack
 
 __all__ = [
     "build_inference_workload",

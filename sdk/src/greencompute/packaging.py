@@ -10,8 +10,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from greenference.image import Image
-from greenference.workload import Workload
+from greencompute.image import Image
+from greencompute.workload import Workload
 
 _ZIP_TIMESTAMP = (2020, 1, 1, 0, 0, 0)
 _DEFAULT_IGNORE_PATTERNS = [

@@ -10,8 +10,8 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from greenference import Image, NodeSelector, RuntimeConfig, Workload
-from greenference.client import (
+from greencompute import Image, NodeSelector, RuntimeConfig, Workload
+from greencompute.client import (
     BuildInfo,
     BuildLogEntry,
     DeploymentInfo,
@@ -22,11 +22,11 @@ from greenference.client import (
     WorkloadInfo,
     WorkloadShareInfo,
 )
-from greenference.config import get_config, init_config, mask_secret, save_config, unset_config
-from greenference.loader import load_workload
-from greenference.packaging import package_workload
-from greenference.templates import build_vllm_workload
-from greenference.workloads import create_inference_workload
+from greencompute.config import get_config, init_config, mask_secret, save_config, unset_config
+from greencompute.loader import load_workload
+from greencompute.packaging import package_workload
+from greencompute.templates import build_vllm_workload
+from greencompute.workloads import create_inference_workload
 
 
 def test_image_workload_loader_and_packaging(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -35,7 +35,7 @@ def test_image_workload_loader_and_packaging(tmp_path: Path, monkeypatch: pytest
     (project / "data.txt").write_text("payload", encoding="utf-8")
     (project / "app.py").write_text(
         """
-from greenference import Image, NodeSelector, Workload
+from greencompute import Image, NodeSelector, Workload
 
 image = (
     Image(username="alice", name="demo", tag="latest")
@@ -167,7 +167,7 @@ def test_packaging_rejects_oversized_context(tmp_path: Path, monkeypatch: pytest
     (project / "data.txt").write_text("x" * 256, encoding="utf-8")
     (project / "app.py").write_text(
         """
-from greenference import Image, Workload
+from greencompute import Image, Workload
 image = Image(username="alice", name="demo", tag="latest").add("data.txt", "/app/data.txt")
 workload = Workload(name="demo-workload", image=image, model_identifier="alice/demo-model")
 """,
@@ -189,7 +189,7 @@ def test_packaging_honors_exclude_patterns(tmp_path: Path, monkeypatch: pytest.M
     (project / "ignore.log").write_text("ignore", encoding="utf-8")
     (project / "app.py").write_text(
         """
-from greenference import Image, Workload
+from greencompute import Image, Workload
 image = Image(username="alice", name="demo", tag="latest").add("keep.txt", "/app/keep.txt")
 workload = Workload(
     name="demo-workload",
@@ -220,7 +220,7 @@ def test_packaging_handles_nested_dirs_and_default_ignores(tmp_path: Path, monke
     (ignored / "ignored.json").write_text("ignored", encoding="utf-8")
     (project / "app.py").write_text(
         """
-from greenference import Image, Workload
+from greencompute import Image, Workload
 image = Image(username="alice", name="nested", tag="latest").add("pkg/data/keep.json", "/app/keep.json")
 workload = Workload(
     name="nested-workload",
@@ -310,7 +310,7 @@ def test_client_retries_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
             raise URLError("temporary network issue")
         return _FakeResponse({"build_id": "b1", "image": "demo:latest", "status": "published"})
 
-    monkeypatch.setattr("greenference.client.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("greencompute.client.request.urlopen", fake_urlopen)
     client = GreenferenceClient(max_retries=1)
 
     build = client.get_build("b1")
@@ -323,7 +323,7 @@ def test_client_timeout_and_server_error_paths(monkeypatch: pytest.MonkeyPatch) 
     def fake_timeout(req, timeout=None):  # type: ignore[no-untyped-def]
         raise socket.timeout("timed out")
 
-    monkeypatch.setattr("greenference.client.request.urlopen", fake_timeout)
+    monkeypatch.setattr("greencompute.client.request.urlopen", fake_timeout)
     client = GreenferenceClient(max_retries=0)
 
     with pytest.raises(GreenferenceTimeoutError, match="timed out"):
@@ -332,7 +332,7 @@ def test_client_timeout_and_server_error_paths(monkeypatch: pytest.MonkeyPatch) 
     def fake_http_error(req, timeout=None):  # type: ignore[no-untyped-def]
         raise HTTPError(req.full_url, 503, "service unavailable", hdrs=None, fp=io.BytesIO(b'{"detail":"down"}'))
 
-    monkeypatch.setattr("greenference.client.request.urlopen", fake_http_error)
+    monkeypatch.setattr("greencompute.client.request.urlopen", fake_http_error)
     with pytest.raises(GreenferenceHTTPError, match="HTTP 503"):
         client.get_build("b1")
 

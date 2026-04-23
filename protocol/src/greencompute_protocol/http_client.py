@@ -16,8 +16,8 @@ from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from greenference_protocol.auth import load_hotkey_from_wallet, sign_payload, sign_payload_hotkey
-from greenference_protocol.models import (
+from greencompute_protocol.auth import load_hotkey_from_wallet, sign_payload, sign_payload_hotkey
+from greencompute_protocol.models import (
     CapacityUpdate,
     DeploymentRecord,
     DeploymentStatusUpdate,

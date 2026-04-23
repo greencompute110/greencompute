@@ -1,4 +1,4 @@
-from greenference_protocol.auth import MemoryReplayStore, sign_payload, verify_payload
+from greencompute_protocol.auth import MemoryReplayStore, sign_payload, verify_payload
 
 
 def test_signing_and_replay_protection():

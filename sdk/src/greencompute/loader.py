@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 
-from greenference.workload import Workload, WorkloadPack
+from greencompute.workload import Workload, WorkloadPack
 
 
 @dataclass(slots=True)
@@ -25,7 +25,7 @@ def load_workload(module_ref: str) -> LoadedWorkload:
     module_path = Path(path_part).expanduser().resolve()
     if not module_path.exists():
         raise FileNotFoundError(f"module path not found: {module_path}")
-    spec = importlib.util.spec_from_file_location(f"greenference_loaded_{module_path.stem}", module_path)
+    spec = importlib.util.spec_from_file_location(f"greencompute_loaded_{module_path.stem}", module_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"unable to load module from {module_path}")
     module = importlib.util.module_from_spec(spec)

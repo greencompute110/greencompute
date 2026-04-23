@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-GREENFERENCE_DIRNAME = ".greenference"
+GREENCOMPUTE_DIRNAME = ".greencompute"
 CONFIG_FILENAME = "config.ini"
 
 
@@ -24,7 +24,7 @@ def default_config_path() -> Path:
     override = os.getenv("GREENFERENCE_CONFIG_PATH")
     if override:
         return Path(override).expanduser()
-    return Path.home() / GREENFERENCE_DIRNAME / CONFIG_FILENAME
+    return Path.home() / GREENCOMPUTE_DIRNAME / CONFIG_FILENAME
 
 
 def load_file_config(path: Path | None = None) -> Config:

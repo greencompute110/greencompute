@@ -1,4 +1,4 @@
-from greenference_protocol.billing_rates import (
+from greencompute_protocol.billing_rates import (
     GPU_RATE_CENTS_PER_HOUR,
     GPU_VRAM_GB,
     INFERENCE_INPUT_CENTS_PER_MTOK,
@@ -9,7 +9,7 @@ from greenference_protocol.billing_rates import (
     inference_cost_cents,
     rate_for_gpu,
 )
-from greenference_protocol.auth import (
+from greencompute_protocol.auth import (
     MemoryReplayStore,
     SignedRequest,
     load_hotkey_from_wallet,
@@ -18,15 +18,15 @@ from greenference_protocol.auth import (
     verify_payload,
     verify_payload_hotkey,
 )
-from greenference_protocol.http_client import ControlPlaneHTTPClient, ControlPlaneHTTPError
-from greenference_protocol.enums import (
+from greencompute_protocol.http_client import ControlPlaneHTTPClient, ControlPlaneHTTPError
+from greencompute_protocol.enums import (
     DeploymentState,
     FluxDecision,
     GpuAllocationMode,
     SecurityTier,
     WorkloadKind,
 )
-from greenference_protocol.models import (
+from greencompute_protocol.models import (
     APIKeyCreateRequest,
     APIKeyRecord,
     APIKeySummary,

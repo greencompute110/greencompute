@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from greenference_protocol.enums import (
+from greencompute_protocol.enums import (
     DeploymentState,
     FluxDecision,
     GpuAllocationMode,
@@ -1003,7 +1003,7 @@ class ChainWeightCommit(BaseModel):
 
 
 class AuditReport(BaseModel):
-    """Per-epoch audit report for independent verifiers (greenference-audit).
+    """Per-epoch audit report for independent verifiers (greencompute-audit).
 
     The canonical on-wire shape is `report_json` with sorted keys + no
     whitespace; `report_sha256` is the hash of that canonical bytes.

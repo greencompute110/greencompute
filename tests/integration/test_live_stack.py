@@ -8,7 +8,7 @@ from urllib import request
 
 import pytest
 
-from greenference.client import GreenferenceClient
+from greencompute.client import GreenferenceClient
 
 
 @pytest.mark.skipif(
@@ -60,7 +60,7 @@ def test_live_stack_build_deploy_and_invoke(tmp_path: Path) -> None:
     suffix = str(time_ns())
     (project / "app.py").write_text(
         f"""
-from greenference import Image, NodeSelector, Workload
+from greencompute import Image, NodeSelector, Workload
 
 image = (
     Image(username="demo", name="live-stack", tag="latest")
@@ -82,8 +82,8 @@ workload = Workload(
     old_cwd = Path.cwd()
     try:
         os.chdir(project)
-        from greenference.loader import load_workload
-        from greenference.packaging import package_workload
+        from greencompute.loader import load_workload
+        from greencompute.packaging import package_workload
 
         loaded = load_workload(f"{project / 'app.py'}:workload")
         packaged = package_workload(loaded.module_path, loaded.workload)

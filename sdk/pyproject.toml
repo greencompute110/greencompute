@@ -1,10 +1,10 @@
 [project]
-name = "greenference-sdk"
+name = "greencompute-sdk"
 version = "0.1.0"
 description = "Greenference Python SDK and CLI"
 requires-python = ">=3.12"
 dependencies = [
-  "greenference-protocol",
+  "greencompute-protocol",
   "typer>=0.12,<1.0",
   "rich>=13.0,<15.0",
 ]
@@ -13,10 +13,10 @@ dependencies = [
 workload-templates = ["chutes>=0.5.5"]
 
 [project.scripts]
-greenference = "greenference.cli:main"
+greencompute = "greencompute.cli:main"
 
 [tool.uv.sources]
-greenference-protocol = { workspace = true }
+greencompute-protocol = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

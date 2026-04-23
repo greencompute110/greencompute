@@ -1,4 +1,4 @@
-from greenference import Image, NodeSelector, Workload
+from greencompute import Image, NodeSelector, Workload
 
 image = (
     Image(username="demo", name="minimal-inference", tag="latest")

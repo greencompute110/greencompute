@@ -1,4 +1,4 @@
-from greenference.client import (
+from greencompute.client import (
     BuildInfo,
     BuildLogEntry,
     DeploymentInfo,
@@ -11,9 +11,9 @@ from greenference.client import (
     WorkloadInfo,
     WorkloadShareInfo,
 )
-from greenference.config import Config, default_config_path, get_config, save_config
-from greenference.image import Image
-from greenference.workload import NodeSelector, RuntimeConfig, Workload, WorkloadPack
+from greencompute.config import Config, default_config_path, get_config, save_config
+from greencompute.image import Image
+from greencompute.workload import NodeSelector, RuntimeConfig, Workload, WorkloadPack
 
 __all__ = [
     "Config",

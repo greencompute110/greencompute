@@ -1,5 +1,5 @@
 [project]
-name = "greenference-repo"
+name = "greencompute-repo"
 version = "0.1.0"
 description = "Greenference shared protocol and SDK"
 readme = "README.md"
