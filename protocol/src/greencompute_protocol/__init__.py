@@ -7,6 +7,7 @@ from greencompute_protocol.billing_rates import (
     LEGACY_FALLBACK_CENTS_PER_HOUR,
     canonical_vram_gb,
     inference_cost_cents,
+    rates_for_model,
     rate_for_gpu,
 )
 from greencompute_protocol.auth import (
@@ -121,6 +122,7 @@ __all__ = [
     "LEGACY_FALLBACK_CENTS_PER_HOUR",
     "canonical_vram_gb",
     "inference_cost_cents",
+    "rates_for_model",
     "rate_for_gpu",
     "APIKeyCreateRequest",
     "APIKeyRecord",

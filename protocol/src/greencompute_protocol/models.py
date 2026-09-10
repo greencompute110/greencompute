@@ -105,11 +105,66 @@ class WorkloadRequirements(BaseModel):
     supported_gpu_models: list[str] = Field(default_factory=list)
 
 
+# Characters that would let an operator-supplied engine arg break out of the
+# `sh -c` script the multi-node launcher builds. The launcher shlex-quotes as
+# well; this is the belt to that braces, and it also protects the single-node
+# argv path against a future refactor that reintroduces a shell.
+_SHELL_METACHARACTERS = re.compile(r"[;&|`$><\n\r\\]")
+_ENV_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _reject_shell_metacharacters(value: str, what: str) -> str:
+    if _SHELL_METACHARACTERS.search(value):
+        raise ValueError(f"{what} contains a shell metacharacter: {value!r}")
+    return value
+
+
+def _validated_env(env: dict[str, str]) -> dict[str, str]:
+    for key, value in env.items():
+        if not _ENV_KEY.match(key):
+            raise ValueError(f"invalid environment variable name: {key!r}")
+        _reject_shell_metacharacters(value, f"env value for {key}")
+    return env
+
+
 class InferenceRuntimeConfig(BaseModel):
     runtime_kind: str = Field(default="hf-causal-lm", min_length=1, max_length=64)
     model_identifier: str = Field(default="sshleifer/tiny-gpt2", min_length=1, max_length=255)
     model_revision: str | None = Field(default=None, min_length=1, max_length=128)
     tokenizer_identifier: str | None = Field(default=None, min_length=1, max_length=255)
+    # Context window to serve with. The catalog entry sets it and
+    # _ensure_catalog_workload writes it here; WITHOUT this field pydantic
+    # silently dropped it, so the value never reached vLLM and every text model
+    # ran at its config's native maximum. Harmless for a 32k model, fatal for
+    # one whose native context is 1M (Kimi K3) — the KV cache is sized off it.
+    max_model_len: int | None = Field(default=None, ge=1)
+    # Pin a specific serving image for THIS model. Normally the miner picks the
+    # vLLM image (it alone knows its driver/compute-cap), but some models only
+    # load on a particular build — e.g. Kimi K3 needs a vLLM that registers
+    # KimiK3ForConditionalGeneration, which the stable cu130 tag does not.
+    # Set per catalog entry so one exotic model can't drag the whole fleet onto
+    # a nightly.
+    image_override: str | None = Field(default=None, min_length=1, max_length=255)
+    # Escape hatch for per-model engine tuning we don't model as first-class
+    # fields. Appended verbatim to the vLLM argv, and exported into the rank
+    # containers respectively. Motivated by Kimi K3 on sm_120, which needs
+    # `--moe-backend marlin` (the auto oracle picks DeepGEMM, which has no
+    # sm_120 branch and hard-asserts) plus raised distributed timeouts.
+    # ADMIN-ONLY: the catalog is admin-managed, and these become container argv
+    # and env. Validated below anyway — the multi-node path joins argv into a
+    # `sh -c` script, so an unquoted metacharacter would be a command injection.
+    extra_engine_args: list[str] = Field(default_factory=list)
+    extra_env: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("extra_engine_args")
+    @classmethod
+    def _no_shell_metacharacters(cls, v: list[str]) -> list[str]:
+        return [_reject_shell_metacharacters(a, "engine arg") for a in v]
+
+    @field_validator("extra_env")
+    @classmethod
+    def _valid_env(cls, v: dict[str, str]) -> dict[str, str]:
+        return _validated_env(v)
 
 
 class WorkloadLifecyclePolicy(BaseModel):
@@ -705,7 +760,26 @@ class ChatCompletionMessage(BaseModel):
     role: str
     # OpenAI spec: content is either a plain string OR a list of content blocks
     # (for multimodal — images, audio, video). Qwen2-VL, LLaVA, etc. require this form.
-    content: str | list[ChatCompletionContentBlock]
+    #
+    # OPTIONAL because a pure tool call carries `content: null` — declaring it
+    # required made those responses fail validation outright.
+    content: str | list[ChatCompletionContentBlock] | None = None
+
+    # `tool_calls` lives on the MESSAGE, not the choice. ChatCompletionChoice
+    # sets extra="allow" and its comment claims tool_calls passes through, but
+    # that only covers choice-level keys — so every tool call vLLM produced was
+    # silently stripped here. Clients saw finish_reason="tool_calls" with no
+    # tool_calls array and their agent loop stalled.
+    tool_calls: list[dict] | None = None
+
+    # Reasoning models (Kimi K3) return the chain of thought beside the answer,
+    # under either name depending on the parser. Dropped for the same reason.
+    reasoning: str | None = None
+    reasoning_content: str | None = None
+
+    # Anything else the upstream emits rides through untouched, so we don't have
+    # to chase every new vLLM field to avoid silently deleting it.
+    model_config = {"extra": "allow"}
 
 
 class ChatCompletionRequest(BaseModel):
@@ -924,7 +998,12 @@ class GreenEnergyApplication(BaseModel):
     """
 
     application_id: str = Field(default_factory=lambda: str(uuid4()))
-    hotkey: str
+    # One of `hotkey` or `payout_address` identifies the applicant:
+    #   * hotkey         — legacy self-custody: they registered their own neuron.
+    #   * payout_address — managed wallet: the platform creates and holds the
+    #     keys, and this is where their alpha emissions are forwarded.
+    hotkey: str = ""
+    payout_address: str | None = None
     signature: str = ""
     organization: str = ""
     energy_source: str = ""
@@ -1227,6 +1306,23 @@ class ModelCatalogEntry(BaseModel):
     gpu_count: int = Field(default=1, ge=1, le=8)
     multi_node: MultiNodeConfig | None = None
     max_model_len: int | None = Field(default=None, ge=1)
+    # Serving image pin for models that only load on a specific vLLM build.
+    image_override: str | None = Field(default=None, min_length=1, max_length=255)
+    # Per-model engine tuning passed through to vLLM / the rank containers.
+    # See InferenceRuntimeConfig for the rationale and the safety rules.
+    extra_engine_args: list[str] = Field(default_factory=list)
+    extra_env: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("extra_engine_args")
+    @classmethod
+    def _no_shell_metacharacters(cls, v: list[str]) -> list[str]:
+        return [_reject_shell_metacharacters(a, "engine arg") for a in v]
+
+    @field_validator("extra_env")
+    @classmethod
+    def _valid_env(cls, v: dict[str, str]) -> dict[str, str]:
+        return _validated_env(v)
+
     visibility: str = "public"  # "public" | "gated"
     min_replicas: int = Field(default=1, ge=0)
     max_replicas: int | None = Field(default=None, ge=1)

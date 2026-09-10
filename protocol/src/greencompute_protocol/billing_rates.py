@@ -99,23 +99,87 @@ def storage_mcents_per_minute(cents_per_day: int = STORAGE_CENTS_PER_DAY) -> int
 #  Inference — per 1M tokens, in cents
 # ---------------------------------------------------------------------------
 
-# Flat rate across all models for now. Per-model tiers (small/medium/large)
-# are a follow-up. Values are in cents per 1,000,000 tokens — so 20 = $0.20.
+# DEFAULT rate, applied to any model without an explicit entry below. Sized for
+# 7B-class models that run on ONE GPU: a 5090 costs $0.70/hr and serves >1k
+# tok/s, so $0.60/1M output is roughly a 3x margin. Values are in cents per
+# 1,000,000 tokens — so 20 = $0.20.
 INFERENCE_INPUT_CENTS_PER_MTOK: int = 20   # $0.20 / 1M input tokens
 INFERENCE_OUTPUT_CENTS_PER_MTOK: int = 60  # $0.60 / 1M output tokens
+
+# PER-MODEL overrides: model_id -> (input_cents_per_mtok, output_cents_per_mtok).
+#
+# The default above is a per-GPU-economics number and does NOT survive contact
+# with a model that pins a whole cluster. Kimi K3 spans 72 GPUs (9 nodes x 8
+# RTX 5090) for ONE replica, so leaving it on the default billed $0.60/1M
+# output against a measured cost of ~$162/1M.
+#
+# K3 is priced DELIBERATELY BELOW the market. Reference price across all ~11
+# commercial K3 endpoints is $3.00/$15.00 (Moonshot's own list price, copied
+# verbatim); the cheapest single endpoint is Morph at $2.90/$14.00. We sit
+# ~33% under the reference at $2.00/$10.00, which makes GreenCompute the
+# cheapest K3 anywhere and reflects the hardware story: 72x RTX 5090 at
+# $0.70/GPU-hr vs an 8xB300 node at $65+/hr, on 100% renewable power.
+#
+# Known and accepted: at the measured 86 tok/s aggregate ceiling every K3 token
+# is served below cost either way (~$162/1M at the $50.40/hr opportunity cost of
+# the 72 cards), so the discount changes the economics by only ~3% — the
+# throughput is the cost driver, not the price. This is a positioning decision,
+# not a margin one. Revisit if aggregate throughput ever clears ~930 tok/s,
+# which is break-even at the $15 reference.
+# See project_k3_pricing_economics for the full derivation.
+MODEL_RATE_CENTS_PER_MTOK: dict[str, tuple[int, int]] = {
+    "kimi-k3": (200, 1000),
+    # K3 CODER (REAP-320) on 48x RTX 5090. Pruned to ~1.03T params so it is
+    # cheaper to serve than full K3, but still pins a whole 6-node cluster.
+    "k3-coder": (100, 500),  # $1.00 in / $5.00 out  # $2.00 / 1M in, $10.00 / 1M out
+}
 
 # Minimum charge per completion, in cents. Prevents abuse of sub-cent tiny
 # requests and covers transport / accounting overhead.
 INFERENCE_MIN_CHARGE_CENTS: int = 1
 
 
-def inference_cost_cents(prompt_tokens: int, completion_tokens: int) -> int:
+def _normalize_model_id(model: str | None) -> str:
+    """Match a rate entry regardless of how the caller spells the model.
+
+    Clients may send the catalog id (`kimi-k3`) or the HF repo
+    (`moonshotai/Kimi-K3`); both must bill the same, or the vendor-prefixed
+    form silently falls through to the cheap default.
+    """
+    if not model:
+        return ""
+    name = model.strip().lower()
+    if "/" in name:
+        name = name.rsplit("/", 1)[-1]
+    return name
+
+
+def rates_for_model(model: str | None) -> tuple[int, int]:
+    """(input, output) cents per 1M tokens for `model`, falling back to the
+    flat default for anything without an explicit entry."""
+    return MODEL_RATE_CENTS_PER_MTOK.get(
+        _normalize_model_id(model),
+        (INFERENCE_INPUT_CENTS_PER_MTOK, INFERENCE_OUTPUT_CENTS_PER_MTOK),
+    )
+
+
+def inference_cost_cents(
+    prompt_tokens: int,
+    completion_tokens: int,
+    model: str | None = None,
+) -> int:
     """Compute the per-request inference charge in cents, rounded UP to the
     configured minimum. Output tokens are priced higher than input because
-    they're what actually runs the model forward."""
+    they're what actually runs the model forward.
+
+    `model` is optional for backward compatibility; omitting it bills at the
+    default rate, which is correct for single-GPU models and WRONG for a
+    cluster-scale one — always pass it where the model is known.
+    """
+    input_rate, output_rate = rates_for_model(model)
     raw_cents = (
-        prompt_tokens * INFERENCE_INPUT_CENTS_PER_MTOK
-        + completion_tokens * INFERENCE_OUTPUT_CENTS_PER_MTOK
+        prompt_tokens * input_rate
+        + completion_tokens * output_rate
     ) / 1_000_000
     # Round half-up so $0.005 → 1¢, not 0.
     rounded = int(raw_cents + 0.5)
