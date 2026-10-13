@@ -219,6 +219,10 @@ class DeploymentCreateRequest(BaseModel):
     # Opt-out "save my pod" on credit exhaustion (default True). False → the
     # pod is deleted shortly after credits run out instead of being saved.
     save_on_exhaustion: bool = True
+    # Stop the deployment automatically this many minutes after it became
+    # ready (when billing started), so a crashed or forgotten client can't
+    # keep paying until the balance runs out. None means no limit.
+    max_runtime_minutes: int | None = Field(default=None, ge=1, le=43200)
 
 
 class DeploymentUpdateRequest(BaseModel):
@@ -238,6 +242,10 @@ class DeploymentRecord(BaseModel):
     endpoint: str | None = None
     ssh_private_key: str | None = None
     port_mappings: dict[int, int] = Field(default_factory=dict)
+    # When the deployment first became ready, which is when billing starts.
+    ready_at: datetime | None = None
+    # Automatic stop this many minutes after ready_at; None means no limit.
+    max_runtime_minutes: int | None = None
     # Cents per GPU per hour — locked at placement from the node's gpu_model.
     # Default 10 preserves the legacy $0.10/hr behaviour for any row that
     # somehow skips the placement hook.
