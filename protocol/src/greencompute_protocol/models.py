@@ -34,6 +34,11 @@ class APIKeyCreateRequest(BaseModel):
     user_id: str | None = None
     admin: bool = False
     scopes: list[str] = Field(default_factory=list)
+    # Per-key limits so a leaked or runaway key can't drain the balance:
+    # how many rentals it may have running at once, and how much it may spend
+    # (rentals and inference) in any 24 hours. None means no limit.
+    max_active_rentals: int | None = Field(default=None, ge=0, le=100)
+    daily_spend_limit_usd: float | None = Field(default=None, gt=0, le=100000)
 
 
 class APIKeyRecord(BaseModel):
@@ -42,6 +47,8 @@ class APIKeyRecord(BaseModel):
     user_id: str | None = None
     admin: bool = False
     scopes: list[str] = Field(default_factory=list)
+    max_active_rentals: int | None = None
+    daily_spend_limit_usd: float | None = None
     secret: str = ""
     created_at: datetime = Field(default_factory=utcnow)
 
@@ -54,6 +61,11 @@ class APIKeySummary(BaseModel):
     user_id: str | None = None
     admin: bool = False
     scopes: list[str] = Field(default_factory=list)
+    # Per-key limits so a leaked or runaway key can't drain the balance:
+    # how many rentals it may have running at once, and how much it may spend
+    # (rentals and inference) in any 24 hours. None means no limit.
+    max_active_rentals: int | None = None
+    daily_spend_limit_usd: float | None = None
     created_at: datetime = Field(default_factory=utcnow)
 
 
@@ -219,6 +231,10 @@ class DeploymentCreateRequest(BaseModel):
     # Opt-out "save my pod" on credit exhaustion (default True). False → the
     # pod is deleted shortly after credits run out instead of being saved.
     save_on_exhaustion: bool = True
+    # Stop the deployment automatically this many minutes after it became
+    # ready (when billing started), so a crashed or forgotten client can't
+    # keep paying until the balance runs out. None means no limit.
+    max_runtime_minutes: int | None = Field(default=None, ge=1, le=43200)
 
 
 class DeploymentUpdateRequest(BaseModel):
@@ -238,6 +254,12 @@ class DeploymentRecord(BaseModel):
     endpoint: str | None = None
     ssh_private_key: str | None = None
     port_mappings: dict[int, int] = Field(default_factory=dict)
+    # When the deployment first became ready, which is when billing starts.
+    ready_at: datetime | None = None
+    # The API key that created it; that key's limits apply to its spending.
+    created_by_key_id: str | None = None
+    # Automatic stop this many minutes after ready_at; None means no limit.
+    max_runtime_minutes: int | None = None
     # Cents per GPU per hour — locked at placement from the node's gpu_model.
     # Default 10 preserves the legacy $0.10/hr behaviour for any row that
     # somehow skips the placement hook.
