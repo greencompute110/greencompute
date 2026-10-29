@@ -231,6 +231,10 @@ class DeploymentCreateRequest(BaseModel):
     # Opt-out "save my pod" on credit exhaustion (default True). False → the
     # pod is deleted shortly after credits run out instead of being saved.
     save_on_exhaustion: bool = True
+    # Opt-in: when this deployment was suspended because the balance ran out
+    # and the balance again covers an hour of it, resume it without anyone
+    # asking (the gateway's credit watch checks every minute).
+    resume_on_topup: bool = False
     # Stop the deployment automatically this many minutes after it became
     # ready (when billing started), so a crashed or forgotten client can't
     # keep paying until the balance runs out. None means no limit.
@@ -240,6 +244,7 @@ class DeploymentCreateRequest(BaseModel):
 class DeploymentUpdateRequest(BaseModel):
     requested_instances: int | None = Field(default=None, ge=1, le=64)
     fee_acknowledged: bool | None = None
+    resume_on_topup: bool | None = None
 
 
 class DeploymentRecord(BaseModel):
@@ -267,9 +272,16 @@ class DeploymentRecord(BaseModel):
     # Opt-out "save my pod": when credits run out, preserve the pod (storage-
     # billed) instead of deleting it shortly after. Defaults True.
     save_on_exhaustion: bool = True
+    # Opt-in: resume by itself once a top-up covers an hour of it again.
+    resume_on_topup: bool = False
     # When the pod last entered SUSPENDED — the clock for the delete reaper and
     # storage accrual. None for pods suspended before this shipped (grandfathered).
     suspended_at: datetime | None = None
+    # Why it is suspended, for code (last_error is for people and is rewritten
+    # by every status report): "balance" (the meter drained the account),
+    # "idle" (a private model nobody called), "resuming" (resume requested,
+    # the machine hasn't reported it running yet). None once running.
+    suspended_reason: str | None = None
     deployment_fee_usd: float = Field(default=0.0, ge=0.0)
     fee_acknowledged: bool = True
     warmup_state: str = "pending"
@@ -397,6 +409,9 @@ class LeaseHistoryRecord(BaseModel):
 
 class DeploymentStatusUpdate(BaseModel):
     deployment_id: str
+    # Why a SUSPENDED report happened ("balance", "idle"); kept on the row
+    # until it runs again, unlike `error`, which every report rewrites.
+    suspended_reason: str | None = None
     state: DeploymentState
     endpoint: str | None = None
     ssh_private_key: str | None = None
