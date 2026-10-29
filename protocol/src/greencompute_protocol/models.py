@@ -224,8 +224,16 @@ class WorkloadSpec(WorkloadCreateRequest):
     created_at: datetime = Field(default_factory=utcnow)
 
 
+#: A deployment's name: what pools, dashboards and the job itself call it.
+#: Letters, digits, "." "_" "-", starting with a letter or digit, so it can be
+#: used as-is as a mining pool's worker name or a hostname-like label.
+DEPLOYMENT_NAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$"
+
+
 class DeploymentCreateRequest(BaseModel):
     workload_id: str
+    # Optional name, passed to a pod as GC_DEPLOYMENT_NAME.
+    name: str | None = Field(default=None, pattern=DEPLOYMENT_NAME_PATTERN)
     requested_instances: int = Field(default=1, ge=1, le=64)
     accept_fee: bool = True
     # Opt-out "save my pod" on credit exhaustion (default True). False → the
@@ -243,6 +251,8 @@ class DeploymentCreateRequest(BaseModel):
 
 class DeploymentUpdateRequest(BaseModel):
     requested_instances: int | None = Field(default=None, ge=1, le=64)
+    # "" clears the name; None leaves it as it is.
+    name: str | None = Field(default=None, pattern=r"^$|" + DEPLOYMENT_NAME_PATTERN)
     fee_acknowledged: bool | None = None
     resume_on_topup: bool | None = None
 
@@ -250,6 +260,8 @@ class DeploymentUpdateRequest(BaseModel):
 class DeploymentRecord(BaseModel):
     deployment_id: str = Field(default_factory=lambda: str(uuid4()))
     workload_id: str
+    # The renter's name for it (DEPLOYMENT_NAME_PATTERN); None if not given.
+    name: str | None = None
     owner_user_id: str | None = None
     hotkey: str | None = None
     node_id: str | None = None
@@ -394,6 +406,8 @@ class LeaseAssignment(BaseModel):
     # every rank shares one workload but needs its OWN role/rank/head_host.
     # None for ordinary single-node deployments.
     multi_node: dict | None = None
+    # The deployment's name, mirrored like multi_node, for GC_DEPLOYMENT_NAME.
+    deployment_name: str | None = None
 
 
 class LeaseHistoryRecord(BaseModel):
