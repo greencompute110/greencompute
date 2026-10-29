@@ -23,6 +23,7 @@ from greencompute_protocol.enums import (
     SecurityTier,
     WorkloadKind,
 )
+from greencompute_protocol.ssh_host_keys import clean_ssh_host_keys
 
 
 def utcnow() -> datetime:
@@ -271,6 +272,22 @@ class DeploymentRecord(BaseModel):
     endpoint: str | None = None
     ssh_private_key: str | None = None
     port_mappings: dict[int, int] = Field(default_factory=dict)
+    # The pod's SSH host public keys from its last ready report.
+    ssh_host_keys: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Rentals: the pod's SSH host public keys (`type base64`), to check the host key "
+            "instead of turning checking off. Empty for models, and for pods started before "
+            "30 Oct 2026. Not in lists; GET /platform/deployments/{id}/ssh also gives known_hosts lines."
+        ),
+    )
+
+    @field_validator("ssh_host_keys", mode="before")
+    @classmethod
+    def _clean_host_keys(cls, value: Any) -> list[str]:
+        # Records are also built from stored rows and by hand; only keys that
+        # parse may reach the API, which fingerprints each one.
+        return clean_ssh_host_keys(value)
     # When the deployment first became ready, which is when billing starts.
     ready_at: datetime | None = None
     # The API key that created it; that key's limits apply to its spending.
@@ -430,9 +447,18 @@ class DeploymentStatusUpdate(BaseModel):
     endpoint: str | None = None
     ssh_private_key: str | None = None
     port_mappings: dict[int, int] | None = None
+    # A pod's SSH host public keys (`type base64`), read once its sshd is up.
+    # None (machines that don't send them, and every report but ready) keeps
+    # the keys already stored; malformed keys are dropped, never an error.
+    ssh_host_keys: list[str] | None = None
     ready_instances: int = Field(default=0, ge=0)
     error: str | None = None
     observed_at: datetime = Field(default_factory=utcnow)
+
+    @field_validator("ssh_host_keys", mode="before")
+    @classmethod
+    def _clean_host_keys(cls, value: Any) -> list[str] | None:
+        return None if value is None else clean_ssh_host_keys(value)
 
 
 class ProbeChallenge(BaseModel):
