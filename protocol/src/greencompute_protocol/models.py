@@ -329,6 +329,11 @@ class NodeCapability(BaseModel):
     node_id: str
     server_id: str | None = None
     hostname: str | None = None
+    # This node's own agent API (stats, logs, run-a-command): several boxes
+    # share one hotkey, and the miner record holds just one address, so the
+    # gateway reached the wrong box for half the rentals. A value that isn't
+    # an http(s) URL is dropped, never a reason to refuse the update.
+    api_base_url: str | None = None
     observed_at: datetime | None = None
     gpu_model: str
     # le raised 8→16: a single physical node can pack more than 8 GPUs (the
@@ -347,6 +352,15 @@ class NodeCapability(BaseModel):
     security_tier: SecurityTier = SecurityTier.STANDARD
     labels: dict[str, str] = Field(default_factory=dict)
 
+
+
+    @field_validator("api_base_url", mode="before")
+    @classmethod
+    def _http_url_or_none(cls, value: Any) -> str | None:
+        if not isinstance(value, str) or len(value) > 256:
+            return None
+        value = value.strip().rstrip("/")
+        return value if re.fullmatch(r"https?://[A-Za-z0-9._\-\[\]:]+", value) else None
 
 class MinerRegistration(BaseModel):
     hotkey: str
